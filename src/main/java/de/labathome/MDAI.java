@@ -67,14 +67,14 @@ public class MDAI {
 	
 	/**
 	 * Evaluate a method of a given class in the interval [xmin:xmax] at nPoints
-	 * @param c class in which the given method is defined
+	 * @param o object in which the given method is defined
 	 * @param method name of a method which takes double[dim][nPoints] as argument and returns double[fdim][nPoints]
 	 * @param xmin[dim] left interval borders
 	 * @param xmax[dim] right interval borders
 	 * @param nPoints number of points at which to evaluate the given method
 	 * @return [fdim][nPoints] evaluated function values
 	 */
-	public static double[][] eval(Class<?> c, String method, double[] xmin, double[] xmax, int nPoints) {
+	public static double[][] eval(Object o, String method, double[] xmin, double[] xmax, int nPoints) {
 		double[][] x = new double[xmin.length][nPoints];
 		for (int j=0; j<xmin.length; ++j) {
 			for (int i=0; i<nPoints; ++i) {
@@ -83,15 +83,18 @@ public class MDAI {
 		}
 		
 		try {
-			Method m = c.getDeclaredMethod(method, double[][].class);
-			return (double[][]) m.invoke((Object)MDAI.class, (Object)x);
+			Method m = o.getClass().getDeclaredMethod(method, double[][].class);
+			return (double[][]) m.invoke(o, (Object)x);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 	
-	public static void demoEval() {
+	/**
+	 * demonstrate the eval() method: evaluate a VectorFunctionND in a given interval at a given number of points
+	 */
+	public static void demoStaticEval() {
 		double[] xmin = new double[] { 0.0        , 0.0         };
 		double[] xmax = new double[] { 2.0*Math.PI, 2.0*Math.PI };
 		int nPoints = 100;
@@ -103,7 +106,7 @@ public class MDAI {
 			}
 		}
 		
-		double[][] sinCos_x = MDAI.eval(MDAI.class, "oD_tD_sinCos", xmin, xmax, nPoints);
+		double[][] sinCos_x = MDAI.eval(new MDAI(), "oD_tD_sinCos", xmin, xmax, nPoints);
 		
 		JyPlot plt = new JyPlot();
 				
@@ -120,10 +123,57 @@ public class MDAI {
 	}
 	
 	
+	public static void demoMemberEval() {
+		double[] xmin = new double[] { 0.0 };
+		double[] xmax = new double[] { 1.0 };
+		int nPoints = 10;
+		
+		double[][] x = new double[xmin.length][nPoints];
+		for (int j=0; j<xmin.length; ++j) {
+			for (int i=0; i<nPoints; ++i) {
+				x[j][i] = xmin[j] + (xmax[j]-xmin[j])*i/(nPoints-1.0);
+			}
+		}
+	
+		
+		class ExpClass {
+			public double tau;
+			public ExpClass(double tau) {
+				this.tau = tau;
+			}
+			public double[][] tauExp(double[][] x) {
+				double[] ret = new double[x[0].length];
+				for (int i=0; i<x[0].length; ++i) {
+					ret[i] = Math.exp(x[0][i]/tau);
+				}
+				return new double[][] { ret };
+			}
+		}
+		
+		ExpClass c1 = new ExpClass(1.0);
+		ExpClass c2 = new ExpClass(2.0);
+		
+		double[][] exp1_x = MDAI.eval(c1, "tauExp", xmin, xmax, nPoints);
+		double[][] exp2_x = MDAI.eval(c2, "tauExp", xmin, xmax, nPoints);
+		
+		JyPlot plt = new JyPlot();
+				
+		plt.figure();
+		plt.plot(x[0], exp1_x[0], "r.-", "label='exp(x)'");
+		plt.plot(x[0], exp2_x[0], "b.-", "label='exp(x/2)'");
+		plt.xlabel("x");
+		plt.ylabel("'y=f(x)'");
+		plt.legend();
+		plt.grid(true);
+		
+		plt.show();
+		plt.exec();
+	}
+	
 	public static void main(String[] args) {
 		
-		demoEval();
-		
+		demoStaticEval();
+		demoMemberEval();
 	}
 
 }
