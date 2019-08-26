@@ -2,8 +2,6 @@ package de.labathome;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.PriorityQueue;
 
 import aliceinnets.python.jyplot.JyPlot;
@@ -263,7 +261,15 @@ public class MDAI {
 		@Override
 		public int compareTo(Region o) {
 			if (this.errmax == o.errmax) return 0;
-			return (this.errmax < o.errmax) ? -1 : 1;
+			/**
+			 * Java implements the PriorityQueue type as a MinHeap, which means that the root
+			 * is always the smallest element as judged by the compareTo method of the defining
+			 * type. The integration algorithm however expects a MaxHeap (where the root is the 
+			 * largest element) in order to work on the worst regions first.
+			 * Hence, we need to reverse the order of the Java PriorityQueue by reversing the sign
+			 * of the compareTo method output. 
+			 */
+			return (this.errmax < o.errmax) ? 1 : -1;
 		}
 	}
 
@@ -284,8 +290,8 @@ public class MDAI {
 		//	     switch (norm) {
 		//		 case ERROR_INDIVIDUAL:
 		for (j = 0; j < fdim; ++j) {
-			//if (ee[j].err > absTol && ee[j].err > Math.abs(ee[j].val)*relTol) {
-			if (ee[j].err > absTol || ee[j].err > Math.abs(ee[j].val)*relTol) {
+			if (ee[j].err > absTol && ee[j].err > Math.abs(ee[j].val)*relTol) {
+			//if (ee[j].err > absTol || ee[j].err > Math.abs(ee[j].val)*relTol) {
 				return false;
 			}
 		}
@@ -588,7 +594,7 @@ public class MDAI {
 		public void evalError(Object o, Method m, Region[] R) {
 			int nR = R.length;
 
-			System.out.println("evalError for "+nR+" regions");
+			//System.out.println("evalError for "+nR+" regions");
 
 			alloc_rule_pts(nR);
 
@@ -861,9 +867,9 @@ public class MDAI {
 				new double[] { 0.0    }, // lower integration limit
 				new double[] { 1.0    }, // upper integration limit
 				1.0e-6, // relative tolerance
-				//0.0, // no absolute tolerance requirement
-				Double.POSITIVE_INFINITY,
-				10000); // max. number of function evaluations
+				0.0, // no absolute tolerance requirement
+				//Double.POSITIVE_INFINITY,
+				110); // max. number of function evaluations
 
 		if (F != null) {
 			System.out.println("integration result: "+F[0][0]+" +/- " + F[1][0]);
