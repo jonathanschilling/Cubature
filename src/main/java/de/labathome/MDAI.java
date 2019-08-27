@@ -1222,15 +1222,37 @@ public class MDAI {
 		F1_class f1 = new F1_class();
 		
 		
-		double[][] F = integrate(cc, "eval",
+		
+		class KlarasBadFunction {
+			@SuppressWarnings("unused")
+			public double[][] eval(double[][] x) {
+				double[] ret = new double[x[0].length];
+				for (int i=0; i<x[0].length; ++i) {
+					//double p1 = Math.cos(Math.pow(x[0][i], x[1][i]));
+					double p1 = Math.cos(x[0][i] + x[1][i]);
+					double p2 = Math.sin(x[0][i]*x[0][i]);
+					double p3 = Math.exp(- x[0][i]*x[0][i] - x[1][i]);
+					ret[i] = p1*p1 * p2 * p3;
+				}
+				return new double[][] { ret };
+			}
+		}
+		KlarasBadFunction kdf = new KlarasBadFunction();
+
+		
+		//double[][] F = integrate(cc, "eval",
 		//double[][] F = integrate(f0, "eval",
 		//double[][] F = integrate(f1, "eval",
-				new double[] { 0.0, 0.0 }, // lower integration limit
-				new double[] { 1.0, 1.0 }, // upper integration limit
+		double[][] F = integrate(kdf, "eval",
+//				new double[] { 0.0, 0.0 }, // lower integration limit
+//				new double[] { 1.0, 1.0 }, // upper integration limit
+				new double[] {   4.0, 4.1 }, // lower integration limit
+				new double[] { -10.0, Math.PI }, // upper integration limit
+				
 				1.0e-9, // relative tolerance
 				0.0, // no absolute tolerance requirement
 				//Double.POSITIVE_INFINITY,
-				10000); // max. number of function evaluations
+				100000); // max. number of function evaluations
 
 		if (F != null) {
 			System.out.println("integration result: "+F[0][0]+" +/- " + F[1][0]);
@@ -1238,8 +1260,6 @@ public class MDAI {
 			System.out.println("no integration performed");
 		}
 	}
-
-
 
 	public static void main(String[] args) {
 
