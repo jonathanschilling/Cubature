@@ -959,13 +959,18 @@ public class MDAI {
 			}
 			
 			try {
+//				System.out.println("eval at:");
+//				for (i=0; i<npts; ++i) {
+//					printf("%d %f %f", i, pts[0][i], pts[1][i]);
+//				}
+				
 				// evaluate function
 				vals = (double[][]) m.invoke(o, (Object)(pts)); // [fdim][15]
 				
-				System.out.println("eval vals:");
-				for (i=0; i<npts; ++i) {
-					System.out.println(String.format(Locale.ENGLISH, "%d %f", i, vals[0][i]));
-				}
+//				System.out.println("eval result:");
+//				for (i=0; i<npts; ++i) {
+//					printf("%d %f", i, vals[0][i]);
+//				}
 			} catch (Exception e) {
 				//e.printStackTrace();
 				throw new RuntimeException(e);
@@ -973,9 +978,90 @@ public class MDAI {
 			
 			
 			
+
+
+			/* we are done with the points, and so we can re-use the pts
+			 array to store the maximum difference diff[i] in each dimension
+			 for each hypercube */
+			double[][] diff = pts;
+			for (i = 0; i < dim /* * nR*/; ++i)
+				for (j=0; j<nR; ++j)
+					diff[i][j] = 0.0;
+
+			for (j = 0; j < fdim; ++j) {
+				double[] v = new double[num_points];
+				
+				//const double *v = vals + j;
+		//#         define VALS(i) v[fdim*(i)]	       
+				for (iR = 0; iR < nR; ++iR) {
+					System.arraycopy(vals[j], iR*num_points, v, 0, num_points);	
+					
+					double result, res5th;
+					double val0, sum2 = 0, sum3 = 0, sum4 = 0, sum5 = 0;
+					int k, k0 = 0;
+					/* accumulate j-th function values into j-th integrals
+					 NOTE: this relies on the ordering of the eval functions
+					 above, as well as on the internal structure of
+					 the evalR0_0fs4d function */
+
+					//val0 = VALS(0); /* central point */
+					val0 = v[0]; /* central point */
+					k0 += 1;
+
+					for (k = 0; k < dim; ++k) {
+						double v0 = v[ k0 + 4 * k];
+						double v1 = v[(k0 + 4 * k) + 1];
+						double v2 = v[(k0 + 4 * k) + 2];
+						double v3 = v[(k0 + 4 * k) + 3];
+
+						sum2 += v0 + v1;
+						sum3 += v2 + v3;
+
+						diff[k][iR] += Math.abs(
+								v0 + v1 - 2 * val0 - ratio * (v2 + v3 - 2 * val0));
+					}
+					k0 += 4 * k;
+
+					for (k = 0; k < numRR0_0fs(dim); ++k)
+						sum4 += v[k0 + k];
+					k0 += k;
+
+					for (k = 0; k < numR_Rfs(dim); ++k)
+						sum5 += v[k0 + k];
+
+					//printf("R %02d dim %d ==> val0=%f sum2=%f sum3=%f sum4=%f sum5=%f", iR, j, val0, sum2, sum3, sum4, sum5);
+					
+					/* Calculate fifth and seventh order results */
+					result = R[iR].h.volume
+							* (weight1 * val0 + weight2 * sum2 + weight3 * sum3
+									+ weight4 * sum4 + weight5 * sum5);
+					res5th = R[iR].h.volume
+							* (weightE1 * val0 + weightE2 * sum2 + weightE3 * sum3
+									+ weightE4 * sum4);
+
+					R[iR].ee[j].val = result;
+					R[iR].ee[j].err = Math.abs(res5th - result);
+
+					//printf("R[%d].ee[%d].val=%f", iR, j, result);
+					
+					//v += num_points * fdim;
+				}
+			}
+
+			/* figure out dimension to split: */
+			for (iR = 0; iR < nR; ++iR) {
+				double maxdiff = 0;
+				int dimDiffMax = 0;
+
+				for (i = 0; i < dim; ++i)
+					if (diff[i][iR] > maxdiff) {
+						maxdiff = diff[i][iR];
+						dimDiffMax = i;
+					}
+				R[iR].splitDim = dimDiffMax;
+			}
 			
-			
-			
+				
 		}
 		
 	}
@@ -1141,10 +1227,10 @@ public class MDAI {
 		//double[][] F = integrate(f1, "eval",
 				new double[] { 0.0, 0.0 }, // lower integration limit
 				new double[] { 1.0, 1.0 }, // upper integration limit
-				1.0e-3, // relative tolerance
+				1.0e-9, // relative tolerance
 				0.0, // no absolute tolerance requirement
 				//Double.POSITIVE_INFINITY,
-				100); // max. number of function evaluations
+				10000); // max. number of function evaluations
 
 		if (F != null) {
 			System.out.println("integration result: "+F[0][0]+" +/- " + F[1][0]);
