@@ -2,6 +2,7 @@ package de.labathome;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.PriorityQueue;
 
 import aliceinnets.python.jyplot.JyPlot;
@@ -718,6 +719,266 @@ public class MDAI {
 		}
 
 	}
+	
+	public static class Rule75GenzMalik extends Rule {
+
+		public static int num0_0(    int dim) { return 1; }
+		public static int numR0_0fs( int dim) { return 2 * dim; }
+		public static int numRR0_0fs(int dim) { return 2 * dim * (dim-1); }
+		public static int numR_Rfs(  int dim) { return (1 << dim); }
+		
+		/* Based on orbitrule.cpp in HIntLib-0.0.10 */
+		/*
+		 * ls0 returns the least-significant 0 bit of n (e.g. it returns 0 if the LSB is
+		 * 0, it returns 1 if the 2 LSBs are 01, etc.).
+		 */
+		public static int ls0(int n) {
+			final byte[] bits = { 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1,
+					0, 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 6, 0,
+					1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5, 0, 1, 0, 2,
+					0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 7, 0, 1, 0, 2, 0, 1, 0,
+					3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1,
+					0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0,
+					1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
+					0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 8, };
+			int bit = 0;
+			while ((n & 0xff) == 0xff) {
+				n >>= 8;
+					bit += 8;
+			}
+			return bit + bits[n & 0xff];
+		}
+
+		/**
+		 * Evaluate the integration points for all 2^n points (+/-r,...+/-r)
+		 *
+		 * A Gray-code ordering is used to minimize the number of coordinate updates in
+		 * p, although this doesn't matter as much now that we are saving all pts.
+		 */
+		public void evalR_Rfs(int pts_offset, int dim, double[] p, final double[] c, final double[] r) {
+			int i;
+
+			/** 0/1 bit = +/- for corresponding element of r[] */
+			int signs = 0; 
+
+			/**
+			 * We start with the point where r is ADDed in every coordinate (this implies
+			 * signs=0).
+			 */
+			for (i = 0; i < dim; ++i)
+				p[i] = c[i] + r[i];
+
+			/** Loop through the points in Gray-code ordering */
+			for (i = 0;; ++i) {
+				int mask, d;
+
+				for (int d2=0; d2<dim; ++d2) { pts[d2][pts_offset] = p[d2]; }
+				// pts += dim; offset: dim
+				pts_offset++;
+
+				/** which coordinate to flip */
+				d = ls0(i); 
+				if (d >= dim)
+					break;
+
+				/** flip the d-th bit and add/subtract r[d] */
+				mask = 1 << d;
+				signs ^= mask;
+				p[d] = (signs & mask) != 0 ? c[d] - r[d] : c[d] + r[d];
+			}
+		}
+		
+		public static void printf(String fmt, Object...objects) {
+			System.out.println(String.format(Locale.ENGLISH, fmt, objects));
+		}
+
+		public void evalRR0_0fs(int pts_offset, int dim, double[] p, final double[] c, final double[] r) {
+			int i, j;
+
+			for (i = 0; i < dim - 1; ++i) {
+				p[i] = c[i] - r[i];
+				for (j = i + 1; j < dim; ++j) {
+					p[j] = c[j] - r[j];
+					for (int d=0; d<dim; ++d) { pts[d][pts_offset] = p[d]; }
+					// memcpy(pts, p, sizeof(double) * dim);
+					pts_offset++;
+					// pts += dim;
+					
+					p[i] = c[i] + r[i];
+					for (int d=0; d<dim; ++d) { pts[d][pts_offset] = p[d]; }
+					// memcpy(pts, p, sizeof(double) * dim);
+					pts_offset++;
+					// pts += dim;
+					
+					p[j] = c[j] + r[j];
+					for (int d=0; d<dim; ++d) { pts[d][pts_offset] = p[d]; }
+					// memcpy(pts, p, sizeof(double) * dim);
+					pts_offset++;
+					// pts += dim;
+					
+					p[i] = c[i] - r[i];
+					for (int d=0; d<dim; ++d) { pts[d][pts_offset] = p[d]; }
+					// memcpy(pts, p, sizeof(double) * dim);
+					pts_offset++;
+					// pts += dim;
+
+					p[j] = c[j]; /* Done with j -> Restore p[j] */
+				}
+				p[i] = c[i]; /* Done with i -> Restore p[i] */
+			}
+		}
+
+		public void evalR0_0fs4d(int pts_offset, int dim, double[] p, final double[] c, final double[] r1,
+				final double[] r2) {
+			int i;
+
+			// center
+			for (int d=0; d<dim; ++d) { pts[d][pts_offset] = p[d]; }
+			// memcpy(pts, p, sizeof(double) * dim);
+			pts_offset++;
+			// pts += dim;
+
+			for (i = 0; i < dim; i++) {
+				p[i] = c[i] - r1[i];
+				for (int d=0; d<dim; ++d) { pts[d][pts_offset] = p[d]; }
+				// memcpy(pts, p, sizeof(double) * dim);
+				pts_offset++;
+				// pts += dim;
+
+				p[i] = c[i] + r1[i];
+				for (int d=0; d<dim; ++d) { pts[d][pts_offset] = p[d]; }
+				// memcpy(pts, p, sizeof(double) * dim);
+				pts_offset++;
+				// pts += dim;
+
+				p[i] = c[i] - r2[i];
+				for (int d=0; d<dim; ++d) { pts[d][pts_offset] = p[d]; }
+				// memcpy(pts, p, sizeof(double) * dim);
+				pts_offset++;
+				// pts += dim;
+
+				p[i] = c[i] + r2[i];
+				for (int d=0; d<dim; ++d) { pts[d][pts_offset] = p[d]; }
+				// memcpy(pts, p, sizeof(double) * dim);
+				pts_offset++;
+				// pts += dim;
+
+				p[i] = c[i];
+			}
+		}
+
+		
+		/* temporary arrays of length dim */
+		double[] widthLambda, widthLambda2, p;
+
+		/* constants */
+		final double weight2, weight4;
+		final double weightE2, weightE4;
+		
+		/* dimension-dependent constants */
+		double weight1, weight3, weight5;
+		double weightE1, weightE3;
+		
+		public Rule75GenzMalik(int dim, int fdim, int num_points) {
+			super(dim, fdim, num_points);
+			if (dim<2) {
+				/* this rule does not support 1d integrals */
+				throw new RuntimeException("75GenzMalik only support integrals of dim>2");
+			}
+			
+			if (dim >= Integer.SIZE) {
+				/* Because of the use of a bit-field in evalR_Rfs, we are limited
+				 to be < 32 dimensions (or however many bits are in unsigned).
+				 This is not a practical limitation...long before you reach
+				 32 dimensions, the Genz-Malik cubature becomes excruciatingly
+				 slow and is superseded by other methods (e.g. Monte-Carlo). */
+				throw new RuntimeException("75GenzMalik only support integrals of dim<"+Integer.SIZE);
+			}
+			
+			weight1 = (12824 - 9120*dim + 400*dim*dim) / 19683.0;
+			weight3 = (1820 - 400*dim) / 19683.0;
+			weight5 = 6859 / (19683.0*(1 << dim));
+			weightE1 = (729 - 950*dim + 50*dim*dim)	/ 729.0;
+			weightE3 = (265 - 100*dim) / 1458.0;
+			
+			weight2  = 980. / 6561.;
+			weight4 = 200. / 19683.;
+			weightE2 = 245. / 486.;
+			weightE4 = 25. / 729.;
+
+			System.out.println(String.format(Locale.ENGLISH, "Genz-Malik weights: 1=%g 3=%g 5=%g E1=%g E3=%g",
+					weight1, weight3, weight5, weightE1, weightE3));
+			
+			p = new double[dim];
+			widthLambda = new double[dim];
+			widthLambda2 = new double[dim];
+		}
+
+		@Override
+		public void evalError(Object o, Method m, Region[] R) {
+			int nR = R.length;
+
+			alloc_rule_pts(nR);
+			
+			/* lambda2 = sqrt(9/70), lambda4 = sqrt(9/10), lambda5 = sqrt(9/19) */
+			final double lambda2 = 0.3585685828003180919906451539079374954541;
+			final double lambda4 = 0.9486832980505137995996680633298155601160;
+			final double lambda5 = 0.6882472016116852977216287342936235251269;
+			
+			final double ratio = (lambda2 * lambda2) / (lambda4 * lambda4);
+
+			int npts = 0, iR, i, j;
+			//double *diff, *pts, *vals;
+
+			for (iR = 0; iR < nR; ++iR) {
+				double[] center = R[iR].h.centers;
+				double[] halfwidth = R[iR].h.halfwidths;
+
+				for (i = 0; i < dim; ++i)
+					p[i] = center[i];
+
+				for (i = 0; i < dim; ++i)
+					widthLambda2[i] = halfwidth[i] * lambda2;
+				for (i = 0; i < dim; ++i)
+					widthLambda[i] = halfwidth[i] * lambda4;
+
+				/* Evaluate points in the center, in (lambda2,0,...,0) and
+				 (lambda3=lambda4, 0,...,0).  */
+				evalR0_0fs4d(npts, dim, p, center, widthLambda2, widthLambda);
+				npts += num0_0(dim) + 2 * numR0_0fs(dim);
+
+				/* Calculate points for (lambda4, lambda4, 0, ...,0) */
+				evalRR0_0fs(npts, dim, p, center, widthLambda);
+				npts += numRR0_0fs(dim);
+
+				/* Calculate points for (lambda5, lambda5, ..., lambda5) */
+				for (i = 0; i < dim; ++i)
+					widthLambda[i] = halfwidth[i] * lambda5;
+				evalR_Rfs(npts, dim, p, center, widthLambda);
+				npts += numR_Rfs(dim);
+			}
+			
+			try {
+				// evaluate function
+				vals = (double[][]) m.invoke(o, (Object)(pts)); // [fdim][15]
+				
+				System.out.println("eval vals:");
+				for (i=0; i<npts; ++i) {
+					System.out.println(String.format(Locale.ENGLISH, "%d %f", i, vals[0][i]));
+				}
+			} catch (Exception e) {
+				//e.printStackTrace();
+				throw new RuntimeException(e);
+			}
+			
+			
+			
+			
+			
+			
+		}
+		
+	}
 
 	/**
 	 * Integrate the given function (o.method) in the range [xmin:xmax] to a relative tolerance relTol or until maxEval function evaluations were used.
@@ -772,10 +1033,15 @@ public class MDAI {
 				r = new RuleGaussKronrod_1d(dim, fdim, 15);
 			} else {
 				// 5-7 Genz-Malik for dim>1
+				int numPoints = Rule75GenzMalik.num0_0(dim)
+						+   2 * Rule75GenzMalik.numR0_0fs(dim)
+						+       Rule75GenzMalik.numRR0_0fs(dim)
+						+       Rule75GenzMalik.numR_Rfs(dim);
+				
+				System.out.println("create Genz-Malik rule for dim="+dim+" with "+numPoints+" points");
+				
+				r = new Rule75GenzMalik(dim, fdim, numPoints);
 			}
-
-
-
 
 			double[] val = new double[fdim];
 			double[] err = new double[fdim];
@@ -816,44 +1082,53 @@ public class MDAI {
 		//
 		//		ExpClass c1 = new ExpClass(1.0);
 
-//		class CosClass {
-//			@SuppressWarnings("unused")
-//			public double[][] eval(double[][] x) {
-//				double[] ret = new double[x[0].length];
-//				for (int i=0; i<x[0].length; ++i) {
-//					ret[i] = Math.cos(x[0][i]);
-//				}
-//				return new double[][] { ret };
-//			}
-//		}
-//		CosClass cc = new CosClass();
-//
-//		class F0_class {
-//			@SuppressWarnings("unused")
-//			public double[][] eval(double[][] x) {
-//				double[] ret = new double[x[0].length];
-//				for (int i=0; i<x[0].length; ++i) {
-//					ret[i] = 2.0*x[0][i];
-//				}
-//				return new double[][] { ret };
-//			}
-//		}
-//		F0_class f0 = new F0_class();
-
-		class F1_class {
-			
-			double a = 0.1;
-			
+		class CosClass {
+			int dim;
+			public CosClass(int mydim) {
+				dim = mydim;
+			}
 			@SuppressWarnings("unused")
 			public double[][] eval(double[][] x) {
 				double[] ret = new double[x[0].length];
 				for (int i=0; i<x[0].length; ++i) {
-					
+					ret[i] = 1.0;
+					for (int d=0; d<dim; ++d) {
+						ret[i] *= Math.cos(x[d][i]);
+					}
+				}
+				return new double[][] { ret };
+			}
+		}
+		CosClass cc = new CosClass(2);
+
+		class F0_class {
+			int dim;
+			public F0_class(int mydim) {
+				dim = mydim;
+			}
+			
+			@SuppressWarnings("unused")
+			public double[][] eval(double[][] x) {
+				double[] ret = new double[x[0].length];
+				for (int d=0; d<dim; ++d) {
+					for (int i=0; i<x[0].length; ++i) {
+						ret[i] = 2.0*x[d][i];
+					}
+				}
+				return new double[][] { ret };
+			}
+		}
+		F0_class f0 = new F0_class(2);
+
+		class F1_class {
+			double a = 0.1;
+			@SuppressWarnings("unused")
+			public double[][] eval(double[][] x) {
+				double[] ret = new double[x[0].length];
+				for (int i=0; i<x[0].length; ++i) {
 					double dx = x[0][i] - 0.5;
 					double sum = dx * dx;
-					
 					ret[i] = 1.12837916709551257390 / (2. * a) * Math.exp(-sum / (a * a));
-					
 				}
 				return new double[][] { ret };
 			}
@@ -861,15 +1136,15 @@ public class MDAI {
 		F1_class f1 = new F1_class();
 		
 		
-		//double[][] F = integrate(cc, "eval",
+		double[][] F = integrate(cc, "eval",
 		//double[][] F = integrate(f0, "eval",
-		double[][] F = integrate(f1, "eval",
-				new double[] { 0.0    }, // lower integration limit
-				new double[] { 1.0    }, // upper integration limit
-				1.0e-6, // relative tolerance
+		//double[][] F = integrate(f1, "eval",
+				new double[] { 0.0, 0.0 }, // lower integration limit
+				new double[] { 1.0, 1.0 }, // upper integration limit
+				1.0e-3, // relative tolerance
 				0.0, // no absolute tolerance requirement
 				//Double.POSITIVE_INFINITY,
-				110); // max. number of function evaluations
+				100); // max. number of function evaluations
 
 		if (F != null) {
 			System.out.println("integration result: "+F[0][0]+" +/- " + F[1][0]);
