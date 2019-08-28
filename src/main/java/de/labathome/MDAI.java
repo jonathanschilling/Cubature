@@ -961,7 +961,7 @@ public class MDAI {
 			try {
 //				System.out.println("eval at:");
 //				for (i=0; i<npts; ++i) {
-//					printf("%d %f %f", i, pts[0][i], pts[1][i]);
+					//printf("%d %f %f", i, pts[0][i], pts[1][i]);
 //				}
 				
 				// evaluate function
@@ -1076,6 +1076,7 @@ public class MDAI {
 	 * @param maxEval
 	 * @return [0:val, 1:err][fdim]
 	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public static double[][] integrate(Object o, String method, double[] xmin, double[] xmax, double relTol, double absTol, int maxEval) {
 		double[][] ret = null;
 
@@ -1105,7 +1106,15 @@ public class MDAI {
 			_center[i][0] = (xmin[i]+xmax[i])/2.0;
 		}
 		try {
-			Method m = o.getClass().getDeclaredMethod(method, double[][].class);
+			Method m = null;
+			if (o instanceof Class) {
+				System.out.println("static member method");
+				m = ((Class)o).getDeclaredMethod(method, double[][].class);
+			} else {
+				System.out.println("method of object instance");
+				m = o.getClass().getDeclaredMethod(method, double[][].class);
+			}
+			
 			double[][] f = (double[][]) m.invoke(o, (Object)_center);
 			if (f == null || f.length==0 || f[0]==null || f[0].length==0) {
 				throw new RuntimeException("Evaluation of given method at interval center failed");
@@ -1147,7 +1156,17 @@ public class MDAI {
 		return ret;
 	}
 
-
+	public static double[][] kbf_static(double[][] x) {
+		double[] ret = new double[x[0].length];
+		for (int i=0; i<x[0].length; ++i) {
+			//double p1 = Math.cos(Math.pow(x[0][i], x[1][i]));
+			double p1 = Math.cos(x[0][i] + x[1][i]);
+			double p2 = Math.sin(x[0][i]*x[0][i]);
+			double p3 = Math.exp(- x[0][i]*x[0][i] - x[1][i]);
+			ret[i] = p1*p1 * p2 * p3;
+		}
+		return new double[][] { ret };
+	}
 
 	public static void demoIntegration() {
 
@@ -1237,13 +1256,14 @@ public class MDAI {
 				return new double[][] { ret };
 			}
 		}
-		KlarasBadFunction kdf = new KlarasBadFunction();
+		KlarasBadFunction kbf = new KlarasBadFunction();
 
 		
 		//double[][] F = integrate(cc, "eval",
 		//double[][] F = integrate(f0, "eval",
 		//double[][] F = integrate(f1, "eval",
-		double[][] F = integrate(kdf, "eval",
+		double[][] F = integrate(kbf, "eval",
+		//double[][] F = integrate(MDAI.class, "kbf_static",
 //				new double[] { 0.0, 0.0 }, // lower integration limit
 //				new double[] { 1.0, 1.0 }, // upper integration limit
 				new double[] {   4.0, 4.1 }, // lower integration limit
