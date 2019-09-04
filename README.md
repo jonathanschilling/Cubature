@@ -54,9 +54,8 @@ facilitates parallelization of the integrand evaluation.
 Download
 --------
 
-The current version of the code can be downloaded from the
-[github repository](https://github.com/jonathanschilling/Cubature), and the
-latest "official" version is available in Maven Central:
+The current version of the code is [Cubature.java](https://github.com/jonathanschilling/Cubature/blob/master/src/main/java/de/labathome/Cubature.java) on Github,
+and the latest "official" version is available in Maven Central:
 
 ```
 <dependency>
