@@ -91,7 +91,7 @@ evaluations.) Otherwise, the integration stops when the estimated
 |error| is less than absTol (the absolute error requested) **or**
 when the estimated |error| is less than relTol × |integral value|
 (the relative error requested). (Either of the error tolerances can be
-set to **zero to ignore** it.)
+set to **0.0 to ignore** it.)
 
 For vector-valued integrands (FDIM > 1), NORM specifies the norm that
 is used to measure the error and determine convergence properties. (The
