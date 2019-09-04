@@ -114,6 +114,17 @@
 				<executions>
 					<execution>
 						<configuration>
+							<archive>
+								<manifest>
+									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+									<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+								</manifest>
+								<manifestEntries>
+									<Build-Revision>${buildNumber}</Build-Revision>
+									<Build-Branch>${scmBranch}</Build-Branch>
+									<Build-Timestamp>${maven.build.timestamp}</Build-Timestamp>
+								</manifestEntries>
+							</archive>
 							<additionalparam>${javadoc.opts}</additionalparam>
 						</configuration>
 						<goals>
@@ -128,6 +139,19 @@
 				<version>3.1.0</version>
 				<executions>
 					<execution>
+					<configuration>
+							<archive>
+								<manifest>
+									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+									<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+								</manifest>
+								<manifestEntries>
+									<Build-Revision>${buildNumber}</Build-Revision>
+									<Build-Branch>${scmBranch}</Build-Branch>
+									<Build-Timestamp>${maven.build.timestamp}</Build-Timestamp>
+								</manifestEntries>
+							</archive>
+						</configuration>
 						<goals>
 							<goal>jar</goal>
 						</goals>
