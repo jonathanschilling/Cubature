@@ -982,6 +982,7 @@ public class Cubature {
 	 * @param xmin vector of lower integration bounds
 	 * @param xmax vector of upper integration bounds
 	 * @param relTol relative tolerance on function values
+	 * @param absTol absolute tolerance on function values
 	 * @param norm Error norm for vector-valued integrands
 	 * @param maxEval absolute tolerance on function values
 	 * @param fdata any Object that shall be passed directly to the integrand; can be used to specify additional info/parameter/...
