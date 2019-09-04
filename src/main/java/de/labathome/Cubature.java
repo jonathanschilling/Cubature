@@ -93,7 +93,7 @@ substantially worse for my test integrands).
 
 */
 public class Cubature {
-
+	
 	public static final double DBL_MIN     = 2.22507385850720138309023271733240406e-308;
 	public static final double DBL_EPSILON = 2.22044604925031308084726333618164062e-16;
 
@@ -124,6 +124,11 @@ public class Cubature {
 		LINF
 	}
 
+	/**
+	 * Set this to true in order to get some debugging output messages
+	 */
+	public static final boolean _debugMessages = false;
+	
 	public static class Hypercube {
 
 		int dim;
@@ -421,7 +426,7 @@ public class Cubature {
 
 			while (numEval < maxEval || maxEval==0) {
 				if (converged(fdim, regions.ee, absTol, relTol, norm)) {
-					System.out.println("converged after "+numEval+" function evaluations");
+					if (_debugMessages) System.out.println("converged after "+numEval+" function evaluations");
 					break;
 				}
 
