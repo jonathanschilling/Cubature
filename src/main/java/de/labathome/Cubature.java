@@ -69,7 +69,7 @@ under the restrictive ACM copyright license).  I did make use of some
 GPL code from Rudolf Schuerer's HIntLib and from the GNU Scientific
 Library as listed in the copyright notice above, on the other hand.
 
-I am also grateful to Dmitry Turbiner <dturbiner@alum.mit.edu>, who
+I am also grateful to Dmitry Turbiner (dturbiner@alum.mit.edu), who
 implemented an initial prototype of the "vectorized" functionality
 for evaluating multiple points in a single call (as opposed to
 multiple functions in a single call).  (Although Dmitry implemented
@@ -83,7 +83,7 @@ TODO:
 
 * For high-dimensional integrals, it would be nice to implement
 a sparse-grid cubature scheme using Clenshaw-Curtis quadrature.
-Currently, for dimensions > 7 or so, quasi Monte Carlo methods win.
+Currently, for more than 7 dimensions or so, quasi Monte Carlo methods win.
 
 * Berntsen et. al also describe a "two-level" error estimation scheme
 that they claim makes the algorithm more robust.  It might be
@@ -713,12 +713,18 @@ public class Cubature {
 			}
 			return bit + bits[n & 0xff];
 		}
-
+		
 		/**
 		 * Evaluate the integration points for all 2^n points (+/-r,...+/-r)
 		 *
 		 * A Gray-code ordering is used to minimize the number of coordinate updates in
 		 * p, although this doesn't matter as much now that we are saving all pts.
+		 * 
+		 * @param pts_offset index offset in pts
+		 * @param dim number of integration dimensions
+		 * @param p re-usable array for points source 
+		 * @param c center
+		 * @param r radius
 		 */
 		public void evalR_Rfs(int pts_offset, int dim, double[] p, final double[] c, final double[] r) {
 			int i;
