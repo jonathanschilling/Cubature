@@ -285,12 +285,10 @@ In any case, the h-adaptive quadrature/cubature rules currently employed in
 `Cubature.java` do not evaluate the integrand at the endpoints, so you need
 not implement special handling for |t|=1.
 
-Examples and Tests
+Tests
 ------------
 
-You can find additional examples in [Examples.java](https://github.com/jonathanschilling/Cubature/blob/master/src/main/java/de/labathome/Examples.java).
-
-JUnit tests have been added based on the [test.c](https://github.com/stevengj/cubature/blob/master/test.c)
+JUnit tests should be added based on the [test.c](https://github.com/stevengj/cubature/blob/master/test.c)
 suite of the original [cubature](https://github.com/stevengj/cubature) package.
 
 The different test integrands are:
