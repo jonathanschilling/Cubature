@@ -232,16 +232,16 @@ public class Cubature {
 			throw new RuntimeException("Either relTol or absTol or both have to be not NaN in order to define a valid convergence criterion");
 		}
 		
-		boolean converged = true;
+		boolean converged = false;
 		int j;
 		switch (norm) {
 		case INDIVIDUAL: {
 			for (j = 0; j < fdim; ++j) {
 				if (!Double.isNaN(absTol)) {
-					converged &= ee[j].err < absTol;
+					converged |= ee[j].err < absTol;
 				}
 				if (!Double.isNaN(relTol)) {
-					converged &= ee[j].err < Math.abs(ee[j].val)*relTol;
+					converged |= ee[j].err < Math.abs(ee[j].val)*relTol;
 				}
 			}
 		}
@@ -257,19 +257,19 @@ public class Cubature {
 				err = Math.sqrt((ee[j].err*serr)*(ee[j].err*serr) + (ee[j+1].err*serr)*(ee[j+1].err*serr)) * maxerr;
 				val = Math.sqrt((ee[j].val*sval)*(ee[j].val*sval) + (ee[j+1].val*sval)*(ee[j+1].val*sval)) * maxval;
 				if (!Double.isNaN(absTol)) {
-					converged &= err < absTol;
+					converged |= err < absTol;
 				}
 				if (!Double.isNaN(relTol)) {
-					converged &= err < Math.abs(val)*relTol;
+					converged |= err < Math.abs(val)*relTol;
 				}
 			}
 			if (j < fdim) {
 				/* fdim is odd, do last dimension individually */
 				if (!Double.isNaN(absTol)) {
-					converged &= ee[j].err < absTol;
+					converged |= ee[j].err < absTol;
 				}
 				if (!Double.isNaN(relTol)) {
-					converged &= ee[j].err < Math.abs(ee[j].val)*relTol;
+					converged |= ee[j].err < Math.abs(ee[j].val)*relTol;
 				}
 			}
 		}
@@ -281,10 +281,10 @@ public class Cubature {
 				val += Math.abs(ee[j].val);
 			}
 			if (!Double.isNaN(absTol)) {
-				converged &= err < absTol;
+				converged |= err < absTol;
 			}
 			if (!Double.isNaN(relTol)) {
-				converged &= err < val*relTol;
+				converged |= err < val*relTol;
 			}
 		}
 		break;
@@ -296,10 +296,10 @@ public class Cubature {
 				if (absval > val) val = absval;
 			}
 			if (!Double.isNaN(absTol)) {
-				converged &= err < absTol;
+				converged |= err < absTol;
 			}
 			if (!Double.isNaN(relTol)) {
-				converged &= err < val*relTol;
+				converged |= err < val*relTol;
 			}
 		}
 		break;
@@ -320,10 +320,10 @@ public class Cubature {
 			err = Math.sqrt(err) * maxerr;
 			val = Math.sqrt(val) * maxval;
 			if (!Double.isNaN(absTol)) {
-				converged &= err < absTol;
+				converged |= err < absTol;
 			}
 			if (!Double.isNaN(relTol)) {
-				converged &= err < val*relTol;
+				converged |= err < val*relTol;
 			}
 		}
 		break;
@@ -750,10 +750,6 @@ public class Cubature {
 			}
 		}
 
-		public static void printf(String fmt, Object...objects) {
-			System.out.println(String.format(Locale.ENGLISH, fmt, objects));
-		}
-
 		public void evalRR0_0fs(int pts_offset, int dim, double[] p, final double[] c, final double[] r) {
 			int i, j;
 
@@ -840,14 +836,14 @@ public class Cubature {
 
 			weight1  = (12824 - 9120*dim + 400*dim*dim) / 19683.0;
 			weight3  = (1820 - 400*dim) / 19683.0;
-			weight5  =  6859 / (19683.0*(1 << dim));
+			weight5  = 6859.0 / (19683.0*(1 << dim));
 			weightE1 = (729 - 950*dim + 50*dim*dim)	/ 729.0;
 			weightE3 = (265 - 100*dim) / 1458.0;
 
-			weight2  = 980. / 6561.;
-			weight4  = 200. / 19683.;
-			weightE2 = 245. / 486.;
-			weightE4 =  25. / 729.;
+			weight2  = 980.0 / 6561.0;
+			weight4  = 200.0 / 19683.0;
+			weightE2 = 245.0 / 486.0;
+			weightE4 =  25.0 / 729.0;
 
 			p = new double[dim];
 			widthLambda = new double[dim];
@@ -978,13 +974,15 @@ public class Cubature {
 	}
 
 	/**
-	 * Integrate the given function (o.method) in the range [xmin:xmax] to a relative tolerance relTol or until maxEval function evaluations were used.
-	 * @param o
-	 * @param method
-	 * @param xmin
-	 * @param xmax
-	 * @param relTol
-	 * @param maxEval
+	 * Integrate the given function (o.method) in the range [xmin:xmax] to a relative tolerance relTol or absolute tolerance absTol or until maxEval function evaluations were used.
+	 * @param o Object or Class in which {@code method} is defined
+	 * @param method integrand method; must have same call signature as {@code double[][] eval(double[][] x, Object fdata)} 
+	 * @param xmin vector of lower integration bounds
+	 * @param xmax vector of upper integration bounds
+	 * @param relTol relative tolerance on function values
+	 * @param norm Error norm for vector-valued integrands
+	 * @param maxEval absolute tolerance on function values
+	 * @param fdata any Object that shall be passed directly to the integrand; can be used to specify additional info/parameter/...
 	 * @return [0:val, 1:err][fdim]
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
