@@ -5,6 +5,96 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.PriorityQueue;
 
+import javax.management.RuntimeErrorException;
+
+/* Adaptive multidimensional integration of a vector of integrands.
+*
+* Copyright (c) 2005-2013 Steven G. Johnson
+* Ported to Java in 2019 by Jonathan Schilling (jonathan.schilling@ipp.mpg.de)
+*
+* Portions (see comments) based on HIntLib (also distributed under
+* the GNU GPL, v2 or later), copyright (c) 2002-2005 Rudolf Schuerer.
+*     (http://www.cosy.sbg.ac.at/~rschuer/hintlib/)
+*
+* Portions (see comments) based on GNU GSL (also distributed under
+* the GNU GPL, v2 or later), copyright (c) 1996-2000 Brian Gough.
+*     (http://www.gnu.org/software/gsl/)
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*
+*/
+
+/** Adaptive multidimensional integration on hypercubes (or, really,
+hyper-rectangles) using cubature rules.
+
+A cubature rule takes a function and a hypercube and evaluates
+the function at a small number of points, returning an estimate
+of the integral as well as an estimate of the error, and also
+a suggested dimension of the hypercube to subdivide.
+
+Given such a rule, the adaptive integration is simple:
+
+1) Evaluate the cubature rule on the hypercube(s).
+Stop if converged.
+
+2) Pick the hypercube with the largest estimated error,
+and divide it in two along the suggested dimension.
+
+3) Goto (1).
+
+The basic algorithm is based on the adaptive cubature described in
+
+A. C. Genz and A. A. Malik, "An adaptive algorithm for numeric
+integration over an N-dimensional rectangular region,"
+J. Comput. Appl. Math. 6 (4), 295-302 (1980).
+
+and subsequently extended to integrating a vector of integrands in
+
+J. Berntsen, T. O. Espelid, and A. Genz, "An adaptive algorithm
+for the approximate calculation of multiple integrals,"
+ACM Trans. Math. Soft. 17 (4), 437-451 (1991).
+
+Note, however, that we do not use any of code from the above authors
+(in part because their code is Fortran 77, but mostly because it is
+under the restrictive ACM copyright license).  I did make use of some
+GPL code from Rudolf Schuerer's HIntLib and from the GNU Scientific
+Library as listed in the copyright notice above, on the other hand.
+
+I am also grateful to Dmitry Turbiner <dturbiner@alum.mit.edu>, who
+implemented an initial prototype of the "vectorized" functionality
+for evaluating multiple points in a single call (as opposed to
+multiple functions in a single call).  (Although Dmitry implemented
+a working version, I ended up re-implementing this feature from
+scratch as part of a larger code-cleanup, and in order to have
+a single code path for the vectorized and non-vectorized APIs.  I
+subsequently implemented the algorithm by Gladwell to extract
+even more parallelism by evalutating many hypercubes at once.)
+
+TODO:
+
+* For high-dimensional integrals, it would be nice to implement
+a sparse-grid cubature scheme using Clenshaw-Curtis quadrature.
+Currently, for dimensions > 7 or so, quasi Monte Carlo methods win.
+
+* Berntsen et. al also describe a "two-level" error estimation scheme
+that they claim makes the algorithm more robust.  It might be
+nice to implement this, at least as an option (although I seem
+to remember trying it once and it made the number of evaluations
+substantially worse for my test integrands).
+
+*/
 public class Cubature {
 
 	public static final double DBL_MIN     = 2.22507385850720138309023271733240406e-308;
@@ -22,7 +112,8 @@ public class Cubature {
 
 		/**
 		 * paired L2 norms of errors in each component, mainly for integrating vectors
-		 * of complex numbers
+		 * of complex numbers; this assumes that the real component is at j and the corresponding
+		 * imaginary part is in j+1 for j the index in fdim
 		 */
 		PAIRED,
 
@@ -137,17 +228,25 @@ public class Cubature {
 
 	public static boolean converged(int fdim, EstErr[] ee, double absTol,
 			double relTol, Error norm) {
-
+		if (Double.isNaN(relTol) && Double.isNaN(absTol)) {
+			throw new RuntimeException("Either relTol or absTol or both have to be not NaN in order to define a valid convergence criterion");
+		}
+		
+		boolean converged = true;
 		int j;
 		switch (norm) {
-		case INDIVIDUAL:
+		case INDIVIDUAL: {
 			for (j = 0; j < fdim; ++j) {
-				if (ee[j].err > absTol && ee[j].err > Math.abs(ee[j].val)*relTol) {
-					return false;
+				if (!Double.isNaN(absTol)) {
+					converged &= ee[j].err < absTol;
+				}
+				if (!Double.isNaN(relTol)) {
+					converged &= ee[j].err < Math.abs(ee[j].val)*relTol;
 				}
 			}
-			return true;
-		case PAIRED:
+		}
+		break;
+		case PAIRED: {
 			for (j = 0; j+1 < fdim; j += 2) {
 				double maxerr, serr, err, maxval, sval, val;
 				/* scale to avoid overflow/underflow */
@@ -157,23 +256,38 @@ public class Cubature {
 				sval = maxval > 0 ? 1/maxval : 1;
 				err = Math.sqrt((ee[j].err*serr)*(ee[j].err*serr) + (ee[j+1].err*serr)*(ee[j+1].err*serr)) * maxerr;
 				val = Math.sqrt((ee[j].val*sval)*(ee[j].val*sval) + (ee[j+1].val*sval)*(ee[j+1].val*sval)) * maxval;
-				if (err > absTol && err > val*relTol)
-					return false;
+				if (!Double.isNaN(absTol)) {
+					converged &= err < absTol;
+				}
+				if (!Double.isNaN(relTol)) {
+					converged &= err < Math.abs(val)*relTol;
+				}
 			}
-			if (j < fdim) /* fdim is odd, do last dimension individually */
-				if (ee[j].err > absTol && ee[j].err > Math.abs(ee[j].val)*relTol)
-					return false;
-			return true;
-
+			if (j < fdim) {
+				/* fdim is odd, do last dimension individually */
+				if (!Double.isNaN(absTol)) {
+					converged &= ee[j].err < absTol;
+				}
+				if (!Double.isNaN(relTol)) {
+					converged &= ee[j].err < Math.abs(ee[j].val)*relTol;
+				}
+			}
+		}
+		break;
 		case L1: {
 			double err = 0, val = 0;
 			for (j = 0; j < fdim; ++j) {
 				err += ee[j].err;
 				val += Math.abs(ee[j].val);
 			}
-			return err <= absTol || err <= val*relTol;
+			if (!Double.isNaN(absTol)) {
+				converged &= err < absTol;
+			}
+			if (!Double.isNaN(relTol)) {
+				converged &= err < val*relTol;
+			}
 		}
-
+		break;
 		case LINF: {
 			double err = 0, val = 0;
 			for (j = 0; j < fdim; ++j) {
@@ -181,9 +295,14 @@ public class Cubature {
 				if (ee[j].err > err) err = ee[j].err;
 				if (absval > val) val = absval;
 			}
-			return err <= absTol || err <= val*relTol;
+			if (!Double.isNaN(absTol)) {
+				converged &= err < absTol;
+			}
+			if (!Double.isNaN(relTol)) {
+				converged &= err < val*relTol;
+			}
 		}
-
+		break;
 		case L2: {
 			double maxerr = 0, maxval = 0, serr, sval, err = 0, val = 0;
 			/* scale values by 1/max to avoid overflow/underflow */
@@ -200,10 +319,20 @@ public class Cubature {
 			}
 			err = Math.sqrt(err) * maxerr;
 			val = Math.sqrt(val) * maxval;
-			return err <= absTol || err <= val*relTol;
+			if (!Double.isNaN(absTol)) {
+				converged &= err < absTol;
+			}
+			if (!Double.isNaN(relTol)) {
+				converged &= err < val*relTol;
+			}
 		}
+		break;
+		default: {
+			converged = false;
 		}
-		return false;
+		break;
+		}
+		return converged;
 	}
 
 	public static class RegionHeap extends PriorityQueue<Region> {
@@ -239,6 +368,7 @@ public class Cubature {
 		}
 	}
 
+	/** adaptive integration, analogous to adaptintegrator.cpp in HIntLib */
 	public static abstract class Rule {
 		int dim, fdim; /* the dimensionality & number of functions */
 		int num_points; /* number of evaluation points */
@@ -257,7 +387,7 @@ public class Cubature {
 			this.num_regions = 0;
 		}
 
-		public abstract void evalError(Object o, Method m, Region[] R, int nR);
+		public abstract void evalError(Object o, Method m, Region[] R, int nR, Object fdata);
 
 		public void alloc_rule_pts(int _num_regions) {
 			if (_num_regions > num_regions) {
@@ -272,7 +402,7 @@ public class Cubature {
 			}
 		}
 
-		public void cubature(Object o, Method m, int maxEval, double relTol, double absTol, double[] val, double[] err, Hypercube h, Error norm) {
+		public void cubature(Object o, Method m, int maxEval, double relTol, double absTol, double[] val, double[] err, Hypercube h, Error norm, Object fdata) {
 
 			int numEval = 0;
 			RegionHeap regions = new RegionHeap(fdim);
@@ -285,7 +415,7 @@ public class Cubature {
 			R = new Region[nR_alloc];
 			R[0] = new Region().init(h, fdim);
 
-			evalError(o, m, new Region[] { R[0] } , 1);
+			evalError(o, m, new Region[] { R[0] } , 1, fdata);
 			R[0].errmax = errMax(R[0].fdim, R[0].ee);
 
 			regions.add(R[0]);
@@ -294,7 +424,7 @@ public class Cubature {
 
 			while (numEval < maxEval || maxEval==0) {
 				if (converged(fdim, regions.ee, absTol, relTol, norm)) {
-					//System.out.println("converged after "+numEval+" function evaluations");
+					System.out.println("converged after "+numEval+" function evaluations");
 					break;
 				}
 
@@ -357,7 +487,7 @@ public class Cubature {
 						break; /* other regions have small errs */
 					}
 				} while (regions.size() > 0 && (numEval < maxEval || maxEval==0));
-				evalError(o,m,R, nR);
+				evalError(o,m,R, nR, fdata);
 				for (i=0; i<nR; ++i) { R[i].errmax = errMax(R[i].fdim, R[i].ee); regions.add(R[i]); }
 				//				} else { /** minimize number of function evaluations per call to 2 */
 				//					/** get worst region */
@@ -389,6 +519,8 @@ public class Cubature {
 		}
 	}
 
+	/** 1d 15-point Gaussian quadrature rule, based on qk15.c and qk.c in
+	 GNU GSL (which in turn is based on QUADPACK). */
 	public static class RuleGaussKronrod_1d extends Rule {
 
 		/* Gauss quadrature weights and kronrod quadrature abscissae and
@@ -436,7 +568,7 @@ public class Cubature {
 		}
 
 		@Override
-		public void evalError(Object o, Method m, Region[] R, int nR) {
+		public void evalError(Object o, Method m, Region[] R, int nR, Object fdata) {
 
 			alloc_rule_pts(nR);
 
@@ -468,7 +600,7 @@ public class Cubature {
 
 			try {
 				// evaluate function
-				vals = (double[][]) m.invoke(o, (Object)(pts)); // [fdim][15]
+				vals = (double[][]) m.invoke(o, (Object)(pts), fdata); // [fdim][15]
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -543,6 +675,14 @@ public class Cubature {
 		}
 	}
 
+	/** Based on rule75genzmalik.cpp in HIntLib-0.0.10: An embedded
+	 cubature rule of degree 7 (embedded rule degree 5) due to A. C. Genz
+	 and A. A. Malik.  See:
+
+	 A. C. Genz and A. A. Malik, "An imbedded [sic] family of fully
+	 symmetric numerical integration rules," SIAM
+	 J. Numer. Anal. 20 (3), 580-588 (1983).
+	 */
 	public static class Rule75GenzMalik extends Rule {
 
 		public static int num0_0(    int dim) { return 1; }
@@ -686,7 +826,7 @@ public class Cubature {
 			super(dim, fdim, num_points);
 			if (dim<2) {
 				/** this rule does not support 1d integrals */
-				throw new RuntimeException("75GenzMalik only support integrals of dim>2");
+				throw new RuntimeException("75GenzMalik only support integrals of dim>=2");
 			}
 
 			if (dim >= Integer.SIZE) {
@@ -715,7 +855,7 @@ public class Cubature {
 		}
 
 		@Override
-		public void evalError(Object o, Method m, Region[] R, int nR) {
+		public void evalError(Object o, Method m, Region[] R, int nR, Object fdata) {
 
 			alloc_rule_pts(nR);
 
@@ -758,7 +898,7 @@ public class Cubature {
 
 			try {
 				// evaluate function
-				vals = (double[][]) m.invoke(o, (Object)(pts)); // [fdim][15]
+				vals = (double[][]) m.invoke(o, (Object)(pts), fdata); // [fdim][15]
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -848,7 +988,7 @@ public class Cubature {
 	 * @return [0:val, 1:err][fdim]
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static double[][] integrate(Object o, String method, double[] xmin, double[] xmax, double relTol, double absTol, Error norm, int maxEval) {
+	public static double[][] integrate(Object o, String method, double[] xmin, double[] xmax, double relTol, double absTol, Error norm, int maxEval, Object fdata) {
 		double[][] ret = null;
 
 		// dimensionality of parameter space
@@ -875,13 +1015,13 @@ public class Cubature {
 			Method m = null;
 			if (o instanceof Class) {
 				//System.out.println("static member method");
-				m = ((Class)o).getDeclaredMethod(method, double[][].class);
+				m = ((Class)o).getDeclaredMethod(method, double[][].class, Object.class);
 			} else {
 				//System.out.println("method of object instance");
-				m = o.getClass().getDeclaredMethod(method, double[][].class);
+				m = o.getClass().getDeclaredMethod(method, double[][].class, Object.class);
 			}
 
-			double[][] f = (double[][]) m.invoke(o, (Object)_center);
+			double[][] f = (double[][]) m.invoke(o, (Object)_center, fdata);
 			if (f == null || f.length==0 || f[0]==null || f[0].length==0) {
 				throw new RuntimeException("Evaluation of given method at interval center failed");
 			} else {
@@ -907,7 +1047,7 @@ public class Cubature {
 
 			Hypercube h = new Hypercube().initFromRanges(xmin, xmax);
 
-			r.cubature(o, m, maxEval, relTol, absTol, val, err, h, norm);
+			r.cubature(o, m, maxEval, relTol, absTol, val, err, h, norm, fdata);
 
 			ret = new double[][] { val, err };
 
@@ -916,5 +1056,9 @@ public class Cubature {
 		}
 
 		return ret;
+	}
+	
+	public static interface Integrand {
+		public abstract double[][] eval(final double[][] x, Object fdata);
 	}
 }
