@@ -1,9 +1,12 @@
-package de.labathome;
+package tests;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.junit.jupiter.api.Test;
+
+import de.labathome.Cubature;
+import de.labathome.Cubature.Error;
 
 public class TestCubature {
 
@@ -140,7 +143,7 @@ public class TestCubature {
 				tol, // relative tolerance
 				0.0, // no absolute tolerance requirement
 				//Double.POSITIVE_INFINITY,
-				Cubature.Error.INDIVIDUAL,
+				Error.INDIVIDUAL,
 				100000, // max. number of function evaluations
 				null);  // no extra info
 

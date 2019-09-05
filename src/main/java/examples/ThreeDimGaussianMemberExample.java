@@ -1,6 +1,9 @@
-package de.labathome;
+package examples;
 
 import java.util.Locale;
+
+import de.labathome.Cubature;
+import de.labathome.Cubature.Error;
 
 public class ThreeDimGaussianMemberExample {
 	
@@ -33,7 +36,7 @@ public class ThreeDimGaussianMemberExample {
 		
 		double[][] val_err = Cubature.integrate(exampleInstance, "gaussianNd",
 				xmin, xmax,
-				1.0e-4, 0.0, Cubature.Error.INDIVIDUAL,
+				1.0e-4, 0.0, Error.INDIVIDUAL,
 				0,
 				sigma);
 		

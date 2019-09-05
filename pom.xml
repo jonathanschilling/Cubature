@@ -5,11 +5,11 @@
 
 	<groupId>de.labathome</groupId>
 	<artifactId>Cubature</artifactId>
-	<version>1.0.3</version>
+	<version>1.0.4</version>
 	<packaging>jar</packaging>
 
 	<name>Cubature</name>
-	<description>adaptive multi-dimensional integration (Java port of stevengj/cubature)</description>
+	<description>adaptive multi-dimensional integration (Java port of stevengj/cubature:1.0.3)</description>
 	<url>https://github.com/jonathanschilling/Cubature</url>
 
 	<licenses>
