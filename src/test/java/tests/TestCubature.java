@@ -12,6 +12,12 @@ public class TestCubature {
 
 	public static final double K_2_SQRTPI = 1.12837916709551257390;
 
+	/**
+	 * starting point for porting the original test integrands from test.c of stevenj/cubature into here
+	 * @param x [dim][nPoints] evaluation points
+	 * @param fdata additional data for integrand
+	 * @return [fdim][nPoints] function values at x
+	 */
 	public static double[][] cubatureIntegrand(double[][] x, Object fdata) {
 		int[] integrands = (int[])fdata;
 		int dim = x.length;
@@ -52,97 +58,82 @@ public class TestCubature {
 		return ret;
 	}
 
-
-
-
-	@Test
-	@SuppressWarnings("unused")
-	public void demoIntegration() {
-
-		//		class ExpClass {
-		//			public double tau;
-		//			public ExpClass(double tau) {
-		//				this.tau = tau;
-		//			}
-		//			@SuppressWarnings("unused")
-		//			public double[][] tauExp(double[][] x) {
-		//				double[] ret = new double[x[0].length];
-		//				for (int i=0; i<x[0].length; ++i) {
-		//					ret[i] = Math.exp(x[0][i]/tau);
-		//				}
-		//				return new double[][] { ret };
-		//			}
-		//		}
-		//
-		//		ExpClass c1 = new ExpClass(1.0);
-
-		class CosClass {
-			int dim;
-			public CosClass(int mydim) {
-				dim = mydim;
-			}
-			public double[][] eval(double[][] x, Object fdata) {
-				double[] ret = new double[x[0].length];
-				for (int i=0; i<x[0].length; ++i) {
-					ret[i] = 1.0;
-					for (int d=0; d<dim; ++d) {
-						ret[i] *= Math.cos(x[d][i]);
-					}
-				}
-				return new double[][] { ret };
-			}
+	public static class F0_class {
+		int dim;
+		public F0_class(int mydim) {
+			dim = mydim;
 		}
-		CosClass cc = new CosClass(2);
 
-		class F0_class {
-			int dim;
-			public F0_class(int mydim) {
-				dim = mydim;
+		public double[][] eval(double[][] x, Object fdata) {
+			double[] ret = new double[x[0].length];
+			for (int d=0; d<dim; ++d) {
+				for (int i=0; i<x[0].length; ++i) {
+					ret[i] = 2.0*x[d][i];
+				}
 			}
+			return new double[][] { ret };
+		}
+	}
+	
+	public static class F1_class {
+		double a = 0.1;
+		public double[][] eval(double[][] x, Object fdata) {
+			double[] ret = new double[x[0].length];
+			for (int i=0; i<x[0].length; ++i) {
+				double dx = x[0][i] - 0.5;
+				double sum = dx * dx;
+				ret[i] = K_2_SQRTPI / (2. * a) * Math.exp(-sum / (a * a));
+			}
+			return new double[][] { ret };
+		}
+	}
 
-			public double[][] eval(double[][] x, Object fdata) {
-				double[] ret = new double[x[0].length];
+	public static class CosClass {
+		int dim;
+		public CosClass(int mydim) {
+			dim = mydim;
+		}
+		public double[][] eval(double[][] x, Object fdata) {
+			double[] ret = new double[x[0].length];
+			for (int i=0; i<x[0].length; ++i) {
+				ret[i] = 1.0;
 				for (int d=0; d<dim; ++d) {
-					for (int i=0; i<x[0].length; ++i) {
-						ret[i] = 2.0*x[d][i];
-					}
+					ret[i] *= Math.cos(x[d][i]);
 				}
-				return new double[][] { ret };
 			}
+			return new double[][] { ret };
 		}
-		F0_class f0 = new F0_class(2);
-
-		class F1_class {
-			double a = 0.1;
-			public double[][] eval(double[][] x, Object fdata) {
-				double[] ret = new double[x[0].length];
-				for (int i=0; i<x[0].length; ++i) {
-					double dx = x[0][i] - 0.5;
-					double sum = dx * dx;
-					ret[i] = K_2_SQRTPI / (2. * a) * Math.exp(-sum / (a * a));
-				}
-				return new double[][] { ret };
+	}
+	
+	public static class ExpClass {
+		public double tau;
+		public ExpClass(double tau) {
+			this.tau = tau;
+		}
+		public double[][] tauExp(double[][] x) {
+			double[] ret = new double[x[0].length];
+			for (int i=0; i<x[0].length; ++i) {
+				ret[i] = Math.exp(x[0][i]/tau);
 			}
+			return new double[][] { ret };
 		}
-		F1_class f1 = new F1_class();
-
-
+	}
+	
+	@Test
+	public void demoIntegration() {
+		
+//		ExpClass c1 = new ExpClass(1.0);
+		CosClass cc = new CosClass(2);
+//		F0_class f0 = new F0_class(2);
+//		F1_class f1 = new F1_class();
 
 		double tol = 1.0e-9;
 
 		double[][] F = Cubature.integrate(cc, "eval",
-				//double[][] F = integrate(f0, "eval",
-				//double[][] F = integrate(f1, "eval",
-				//double[][] F = integrate(kbf, "eval",
-				//double[][] F = integrate(MDAI.class, "kbf_static",
 				new double[] { 0.0, 0.0 }, // lower integration limit
 				new double[] { 1.0, 1.0 }, // upper integration limit
-				//				new double[] {   4.0, 4.1 }, // lower integration limit
-				//				new double[] { -10.0, Math.PI }, // upper integration limit
-
 				tol, // relative tolerance
 				0.0, // no absolute tolerance requirement
-				//Double.POSITIVE_INFINITY,
 				Error.INDIVIDUAL,
 				100000, // max. number of function evaluations
 				null);  // no extra info
