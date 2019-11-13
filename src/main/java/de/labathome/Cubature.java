@@ -188,6 +188,8 @@ public class Cubature {
 						+       Rule75GenzMalik.numRR0_0fs(dim)
 						+       Rule75GenzMalik.numR_Rfs(dim);
 
+				//System.out.println("dim="+dim+" fdim="+fdim);
+				
 				r = new Rule75GenzMalik(dim, fdim, numPoints);
 			}
 
@@ -208,14 +210,23 @@ public class Cubature {
 		return ret;
 	}
 	
+	/**
+	 * Integrand interface for Cubature.
+	 */
 	public static interface Integrand {
+		/**
+		 * Evaluate the nFDim-dimensional integrand at nPoints nDim-dimensional locations.
+		 * @param x [nDim][nPoints] locations where to evaluate the integrand
+		 * @param fdata some arbitrary data that is passed from the integrate() call into the integrand
+		 * @return [nFDim][nPoints] function values at x
+		 */
 		public abstract double[][] eval(final double[][] x, Object fdata);
 	}
 
 	/**
 	 * Set this to true in order to get some debugging output messages
 	 */
-	public static final boolean _debugMessages = false;
+	public static boolean _debugMessages = false;
 	
 	private static class Hypercube {
 
@@ -512,9 +523,11 @@ public class Cubature {
 
 			numEval += num_points;
 
+			boolean converged = false;
 			while (numEval < maxEval || maxEval==0) {
 				if (converged(fdim, regions.ee, absTol, relTol, norm)) {
 					if (_debugMessages) System.out.println("converged after "+numEval+" function evaluations");
+					converged = true;
 					break;
 				}
 
@@ -594,6 +607,10 @@ public class Cubature {
 				//
 				//					numEval += num_points * 2;
 				//				}
+			}
+			
+			if (!converged) {
+				System.out.println("Cubature did not converge after "+numEval+" function evaluations!");
 			}
 
 			/** re-sum integral and errors */
