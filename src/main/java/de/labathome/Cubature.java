@@ -7,7 +7,7 @@ import java.util.PriorityQueue;
 /* Adaptive multidimensional integration of a vector of integrands.
 *
 * Copyright (c) 2005-2013 Steven G. Johnson
-* Ported to Java in 2019 by Jonathan Schilling (jonathan.schilling@ipp.mpg.de)
+* Ported to Java in 2019 by Jonathan Schilling (jonathan.schilling@mail.de)
 *
 * Portions (see comments) based on HIntLib (also distributed under
 * the GNU GPL, v2 or later), copyright (c) 2002-2005 Rudolf Schuerer.
