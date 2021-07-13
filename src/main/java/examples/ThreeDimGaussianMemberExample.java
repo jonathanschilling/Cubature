@@ -3,16 +3,16 @@ package examples;
 import java.util.Locale;
 
 import de.labathome.Cubature;
-import de.labathome.Cubature.Error;
+import de.labathome.CubatureError;
 
 public class ThreeDimGaussianMemberExample {
-	
+
 	private double sigma;
-	
+
 	public ThreeDimGaussianMemberExample(double newSigma) {
 		sigma = newSigma;
 	}
-	
+
 	public double[][] gaussianNd(double[][] x, Object fdata) {
 		int dim = x.length;
 		int nPoints = x[0].length;
@@ -33,13 +33,13 @@ public class ThreeDimGaussianMemberExample {
 
 		double sigma = 0.5;
 		ThreeDimGaussianMemberExample exampleInstance = new ThreeDimGaussianMemberExample(sigma);
-		
+
 		double[][] val_err = Cubature.integrate(exampleInstance, "gaussianNd",
 				xmin, xmax,
-				1.0e-4, 0.0, Error.INDIVIDUAL,
+				1.0e-4, 0.0, CubatureError.INDIVIDUAL,
 				0,
 				sigma);
-		
+
 		System.out.println(String.format(Locale.ENGLISH,
 				"Computed integral = %.8f +/- %g", val_err[0][0], val_err[1][0]));
 	}

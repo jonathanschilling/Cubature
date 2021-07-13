@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import org.junit.jupiter.api.Test;
 
 import de.labathome.Cubature;
-import de.labathome.Cubature.Error;
+import de.labathome.CubatureError;
 
 public class TestCubature {
 
@@ -27,7 +27,7 @@ public class TestCubature {
 		for (int fdim=1; fdim<=integrands.length; ++fdim) {
 			for (int p=0; p<nPoints; ++p) {
 				double val = Double.NaN;
-				
+
 				if (integrands[fdim-1] == 0) {
 					/* simple smooth (separable) objective: prod. cos(x[i]). */
 					val = 1.0;
@@ -50,7 +50,7 @@ public class TestCubature {
 					}
 					val = Math.exp(-val) * scale;
 				}
-				
+
 				ret[fdim][p] = val;
 			}
 		}
@@ -74,7 +74,7 @@ public class TestCubature {
 			return new double[][] { ret };
 		}
 	}
-	
+
 	public static class F1_class {
 		double a = 0.1;
 		public double[][] eval(double[][] x, Object fdata) {
@@ -104,7 +104,7 @@ public class TestCubature {
 			return new double[][] { ret };
 		}
 	}
-	
+
 	public static class ExpClass {
 		public double tau;
 		public ExpClass(double tau) {
@@ -118,10 +118,10 @@ public class TestCubature {
 			return new double[][] { ret };
 		}
 	}
-	
+
 	@Test
 	public void demoIntegration() {
-		
+
 //		ExpClass c1 = new ExpClass(1.0);
 		CosClass cc = new CosClass(2);
 //		F0_class f0 = new F0_class(2);
@@ -134,7 +134,7 @@ public class TestCubature {
 				new double[] { 1.0, 1.0 }, // upper integration limit
 				tol, // relative tolerance
 				0.0, // no absolute tolerance requirement
-				Error.INDIVIDUAL,
+				CubatureError.INDIVIDUAL,
 				100000, // max. number of function evaluations
 				null);  // no extra info
 
