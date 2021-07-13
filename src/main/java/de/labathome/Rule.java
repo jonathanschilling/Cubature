@@ -46,11 +46,12 @@ public abstract class Rule {
 		RegionHeap regions = new RegionHeap(fdim);
 
 		int i, j;
-		Region[] R = null; /* array of regions to evaluate */
-		int nR_alloc = 0;
 
-		nR_alloc = 2;
-		R = new Region[nR_alloc];
+		int nR_alloc = 2;
+
+		/* array of regions to evaluate */
+		Region[] R = new Region[nR_alloc];
+
 		R[0] = new Region().init(h, fdim);
 
 		evalError(o, m, new Region[] { R[0] } , 1, fdata);
@@ -68,37 +69,30 @@ public abstract class Rule {
 				break;
 			}
 
-			//				boolean parallel = true;
-			//
-			//				/** maximize potential parallelism */
-			//				if (parallel) {
-			/** adapted from I. Gladwell, "Vectorization of one
-								 dimensional quadrature codes," pp. 230--238 in
-								 _Numerical Integration. Recent Developments,
-								 Software and Applications_, G. Fairweather and
-								 P. M. Keast, eds., NATO ASI Series C203, Dordrecht
-								 (1987), as described in J. M. Bull and
-								 T. L. Freeman, "Parallel Globally Adaptive
-								 Algorithms for Multi-dimensional Integration,"
-								 http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.42.6638
-								 (1994).
-
-								 Basically, this evaluates in one shot all regions
-								 that *must* be evaluated in order to reduce the
-								 error to the requested bound: the minimum set of
-								 largest-error regions whose errors push the total
-								 error over the bound.
-
-								 [Note: Bull and Freeman claim that the Gladwell
-								 approach is intrinsically inefficent because it
-								 "requires sorting", and propose an alternative
-								 algorithm that "only" requires three passes over the
-								 entire set of regions.  Apparently, they didn't
-								 realize that one could use a heap data structure, in
-								 which case the time to pop K biggest-error regions
-								 out of N is only O(K log N), much better than the
-								 O(N) cost of the Bull and Freeman algorithm if K <<
-								 N, and it is also much simpler.] */
+			/**
+			 * adapted from I. Gladwell, "Vectorization of one dimensional quadrature codes", pp. 230--238 in
+			 * _Numerical Integration. Recent Developments, Software and Applications_,
+			 * G. Fairweather and P. M. Keast, eds., NATO ASI Series C203, Dordrecht (1987),
+			 * as described in J. M. Bull and T. L. Freeman, "Parallel Globally Adaptive Algorithms for Multi-dimensional Integration,"
+			 * http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.42.6638 (1994).
+			 *
+			 * Basically, this evaluates in one shot all regions
+			 * that *must* be evaluated in order to reduce the
+			 * error to the requested bound: the minimum set of
+			 * largest-error regions whose errors push the total
+			 * error over the bound.
+			 *
+			 * [Note: Bull and Freeman claim that the Gladwell
+			 * approach is intrinsically inefficent because it
+			 * "requires sorting", and propose an alternative
+			 * algorithm that "only" requires three passes over the
+			 * entire set of regions.  Apparently, they didn't
+			 * realize that one could use a heap data structure, in
+			 * which case the time to pop K biggest-error regions
+			 * out of N is only O(K log N), much better than the
+			 * O(N) cost of the Bull and Freeman algorithm if K << N,
+			 * and it is also much simpler.]
+			 */
 			int nR = 0;
 			EstErr[] ee = new EstErr[fdim];
 			for (j = 0; j < fdim; ++j) {
@@ -108,13 +102,17 @@ public abstract class Rule {
 			}
 
 			do {
+				// logarithmically growing arrays to minimize need to re-allocate and copy
 				if (nR + 2 > nR_alloc) {
 					nR_alloc = (nR + 2) * 2;
 
 					Region[] R_old = R.clone();
 					R = new Region[nR_alloc];
-					for (i=0; i<R_old.length; ++i) { R[i] = R_old[i]; }
+					for (i=0; i<R_old.length; ++i) {
+						R[i] = R_old[i];
+					}
 				}
+
 				R[nR] = regions.poll();
 				for (j = 0; j < fdim; ++j) {
 					ee[j].err -= R[nR].ee[j].err;
@@ -127,23 +125,14 @@ public abstract class Rule {
 					break; /* other regions have small errs */
 				}
 			} while (regions.size() > 0 && (numEval < maxEval || maxEval==0));
-			evalError(o,m,R, nR, fdata);
-			for (i=0; i<nR; ++i) { R[i].errmax = errMax(R[i].fdim, R[i].ee); regions.add(R[i]); }
-			//				} else { /** minimize number of function evaluations per call to 2 */
-			//					/** get worst region */
-			//					R[0] = regions.poll();
-			//
-			//					R[1] = R[0].cut();
-			//
-			//					evalError(o, m, R, 2);
-			//					R[0].errmax = errMax(R[0].fdim, R[0].ee);
-			//					R[1].errmax = errMax(R[1].fdim, R[1].ee);
-			//
-			//					regions.add(R[0]);
-			//					regions.add(R[1]);
-			//
-			//					numEval += num_points * 2;
-			//				}
+
+			evalError(o, m, R, nR, fdata);
+
+			for (i=0; i<nR; ++i) {
+				R[i].errmax = errMax(R[i].fdim, R[i].ee);
+				regions.add(R[i]);
+			}
+
 		}
 
 		if (!converged) {
@@ -151,8 +140,10 @@ public abstract class Rule {
 		}
 
 		/** re-sum integral and errors */
-		for (j = 0; j < fdim; ++j)
+		for (j = 0; j < fdim; ++j) {
 			val[j] = err[j] = 0;
+		}
+
 		Region[] _regions = regions.toArray(new Region[regions.size()]);
 		for (i = 0; i < _regions.length; ++i) {
 			for (j = 0; j < fdim; ++j) {
@@ -273,11 +264,12 @@ public abstract class Rule {
 
 
 	protected static double errMax(int fdim, EstErr[] ee) {
-		double errmax = 0;
-		int k;
-		for (k = 0; k < fdim; ++k)
-			if (ee[k].err > errmax)
+		double errmax = 0.0;
+		for (int k = 0; k < fdim; ++k) {
+			if (ee[k].err > errmax) {
 				errmax = ee[k].err;
+			}
+		}
 		return errmax;
 	}
 }

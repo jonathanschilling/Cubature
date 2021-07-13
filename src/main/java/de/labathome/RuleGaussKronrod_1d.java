@@ -6,9 +6,7 @@ import java.lang.reflect.Method;
 GNU GSL (which in turn is based on QUADPACK). */
 public class RuleGaussKronrod_1d extends Rule {
 
-	public static final double DBL_MIN     = 2.22507385850720138309023271733240406e-308;
-	public static final double DBL_EPSILON = 2.22044604925031308084726333618164062e-16;
-
+	public static final double DBL_EPSILON = Math.ulp(1.0);
 
 	/* Gauss quadrature weights and kronrod quadrature abscissae and
 	 weights as evaluated with 80 decimal digit arithmetic by
@@ -87,7 +85,7 @@ public class RuleGaussKronrod_1d extends Rule {
 
 		try {
 			// evaluate function
-			vals = (double[][]) m.invoke(o, (Object)(pts), fdata); // [fdim][15]
+			vals = (double[][]) m.invoke(o, (Object)(pts), fdata); // [fdim][nR*15]
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -122,10 +120,11 @@ public class RuleGaussKronrod_1d extends Rule {
 				/* integration result */
 				R[iR].ee[k].val = result_kronrod * halfwidth;
 
-				/* error estimate
-					 (from GSL, probably dates back to QUADPACK
-					 ... not completely clear to me why we don't just use
-					 Math.abs(result_kronrod - result_gauss) * halfwidth */
+				/**
+				 * error estimate (from GSL, probably dates back to QUADPACK)
+				 * ... not completely clear to me why we don't just use
+				 * Math.abs(result_kronrod - result_gauss) * halfwidth
+				 */
 				mean = result_kronrod * 0.5;
 				result_asc = wgk[n - 1] * Math.abs(vk[iR*15+0] - mean);
 				npts = 1;
@@ -139,17 +138,20 @@ public class RuleGaussKronrod_1d extends Rule {
 					result_asc += wgk[j2] * (Math.abs(vk[iR*15+npts] - mean) + Math.abs(vk[iR*15+npts+1] - mean));
 					npts += 2;
 				}
+
 				err = Math.abs(result_kronrod - result_gauss) * halfwidth;
+
 				result_abs *= halfwidth;
 				result_asc *= halfwidth;
 				if (result_asc != 0 && err != 0) {
-					double scale = Math.pow((200 * err / result_asc), 1.5);
+					double scale = Math.pow(200 * err / result_asc, 1.5);
 					err = (scale < 1) ? result_asc * scale : result_asc;
 				}
-				if (result_abs > DBL_MIN / (50 * DBL_EPSILON)) {
+				if (result_abs > Double.MIN_NORMAL / (50 * DBL_EPSILON)) {
 					double min_err = 50 * DBL_EPSILON * result_abs;
-					if (min_err > err)
+					if (min_err > err) {
 						err = min_err;
+					}
 				}
 
 				R[iR].ee[k].err = err;
