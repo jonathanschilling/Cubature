@@ -44,7 +44,7 @@ public class Rule75GenzMalik extends Rule {
 				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
 				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5,
 				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
-				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 8, };
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 8 };
 		int bit = 0;
 		while ((n & 0xff) == 0xff) {
 			n >>= 8;
@@ -75,8 +75,9 @@ public class Rule75GenzMalik extends Rule {
 		 * We start with the point where r is ADDed in every coordinate (this implies
 		 * signs=0).
 		 */
-		for (i = 0; i < dim; ++i)
+		for (i = 0; i < dim; ++i) {
 			p[i] = c[i] + r[i];
+		}
 
 		/** Loop through the points in Gray-code ordering */
 		for (i = 0;; ++i) {
@@ -87,8 +88,9 @@ public class Rule75GenzMalik extends Rule {
 
 			/** which coordinate to flip */
 			d = ls0(i);
-			if (d >= dim)
+			if (d >= dim) {
 				break;
+			}
 
 			/** flip the d-th bit and add/subtract r[d] */
 			mask = 1 << d;
@@ -215,13 +217,16 @@ public class Rule75GenzMalik extends Rule {
 			double[] center = R[iR].h.centers;
 			double[] halfwidth = R[iR].h.halfwidths;
 
-			for (i = 0; i < dim; ++i)
+			for (i = 0; i < dim; ++i) {
 				p[i] = center[i];
+			}
 
-			for (i = 0; i < dim; ++i)
+			for (i = 0; i < dim; ++i) {
 				widthLambda2[i] = halfwidth[i] * lambda2;
-			for (i = 0; i < dim; ++i)
+			}
+			for (i = 0; i < dim; ++i) {
 				widthLambda[i] = halfwidth[i] * lambda4;
+			}
 
 			/* Evaluate points in the center, in (lambda2,0,...,0) and
 			 (lambda3=lambda4, 0,...,0).  */
@@ -233,8 +238,9 @@ public class Rule75GenzMalik extends Rule {
 			npts += numRR0_0fs(dim);
 
 			/* Calculate points for (lambda5, lambda5, ..., lambda5) */
-			for (i = 0; i < dim; ++i)
+			for (i = 0; i < dim; ++i) {
 				widthLambda[i] = halfwidth[i] * lambda5;
+			}
 			evalR_Rfs(npts, dim, p, center, widthLambda);
 			npts += numR_Rfs(dim);
 		}
@@ -272,7 +278,7 @@ public class Rule75GenzMalik extends Rule {
 				k0 += 1;
 
 				for (k = 0; k < dim; ++k) {
-					double v0 = v[ k0 + 4 * k];
+					double v0 = v[(k0 + 4 * k) + 0];
 					double v1 = v[(k0 + 4 * k) + 1];
 					double v2 = v[(k0 + 4 * k) + 2];
 					double v3 = v[(k0 + 4 * k) + 3];
@@ -281,24 +287,23 @@ public class Rule75GenzMalik extends Rule {
 					sum3 += v2 + v3;
 
 					diff[k][iR] += Math.abs(
-							v0 + v1 - 2 * val0 - ratio * (v2 + v3 - 2 * val0));
+							           v0 + v1 - 2 * val0
+							- ratio * (v2 + v3 - 2 * val0));
 				}
 				k0 += 4 * k;
 
-				for (k = 0; k < numRR0_0fs(dim); ++k)
+				for (k = 0; k < numRR0_0fs(dim); ++k) {
 					sum4 += v[k0 + k];
+				}
 				k0 += k;
 
-				for (k = 0; k < numR_Rfs(dim); ++k)
+				for (k = 0; k < numR_Rfs(dim); ++k) {
 					sum5 += v[k0 + k];
+				}
 
 				/* Calculate fifth and seventh order results */
-				result = R[iR].h.volume
-						* (weight1 * val0 + weight2 * sum2 + weight3 * sum3
-								+ weight4 * sum4 + weight5 * sum5);
-				res5th = R[iR].h.volume
-						* (weightE1 * val0 + weightE2 * sum2 + weightE3 * sum3
-								+ weightE4 * sum4);
+				result = R[iR].h.volume * (weight1  * val0 + weight2  * sum2 + weight3  * sum3 + weight4  * sum4 + weight5 * sum5);
+				res5th = R[iR].h.volume	* (weightE1 * val0 + weightE2 * sum2 + weightE3 * sum3 + weightE4 * sum4);
 
 				R[iR].ee[j].val = result;
 				R[iR].ee[j].err = Math.abs(res5th - result);
@@ -310,11 +315,12 @@ public class Rule75GenzMalik extends Rule {
 			double maxdiff = 0;
 			int dimDiffMax = 0;
 
-			for (i = 0; i < dim; ++i)
+			for (i = 0; i < dim; ++i) {
 				if (diff[i][iR] > maxdiff) {
 					maxdiff = diff[i][iR];
 					dimDiffMax = i;
 				}
+			}
 			R[iR].splitDim = dimDiffMax;
 		}
 	}
