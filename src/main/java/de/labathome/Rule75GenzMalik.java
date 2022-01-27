@@ -2,13 +2,15 @@ package de.labathome;
 
 import java.lang.reflect.Method;
 
-/** Based on rule75genzmalik.cpp in HIntLib-0.0.10: An embedded
-cubature rule of degree 7 (embedded rule degree 5) due to A. C. Genz
-and A. A. Malik.  See:
-
-A. C. Genz and A. A. Malik, "An imbedded [sic] family of fully
-symmetric numerical integration rules," SIAM
-J. Numer. Anal. 20 (3), 580-588 (1983).
+/**
+ * Based on rule75genzmalik.cpp in HIntLib-0.0.10:
+ * An embedded cubature rule of degree 7 (embedded rule degree 5)
+ * due to A. C. Genz and A. A. Malik.
+ *
+ * See:
+ * A. C. Genz and A. A. Malik,
+ * "An imbedded [sic] family of fully symmetric numerical integration rules",
+ * SIAM J. Numer. Anal. 20 (3), 580-588 (1983).
 */
 public class Rule75GenzMalik extends Rule {
 
@@ -23,13 +25,25 @@ public class Rule75GenzMalik extends Rule {
 	 * 0, it returns 1 if the 2 LSBs are 01, etc.).
 	 */
 	public static int ls0(int n) {
-		final byte[] bits = { 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1,
-				0, 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 6, 0,
-				1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5, 0, 1, 0, 2,
-				0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 7, 0, 1, 0, 2, 0, 1, 0,
-				3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1,
-				0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0,
-				1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
+		final byte[] bits = {
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 6,
+
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5,
+				0, 1, 0, 2,	0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 7,
+
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 6,
+
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5,
+				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,
 				0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 8, };
 		int bit = 0;
 		while ((n & 0xff) == 0xff) {
