@@ -2,6 +2,7 @@ package de.labathome;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.function.UnaryOperator;
 
 /* Adaptive multidimensional integration of a vector of integrands.
 *
@@ -95,20 +96,17 @@ public class Cubature {
 
 	/**
 	 * Integrate the given function (o.method) in the range [xmin:xmax] to a relative tolerance relTol or absolute tolerance absTol or until maxEval function evaluations were used.
-	 * @param o Object or Class in which {@code method} is defined
-	 * @param method integrand method; must have same call signature as {@code double[][] eval(double[][] x, Object fdata)}
-	 * @param xmin vector of lower integration bounds
-	 * @param xmax vector of upper integration bounds
+	 * @param integrand function to integrate; must map t[xdim][nEvalPoints]) -> f[fdim][nEvalPoints]
+	 * @param xmin [xdim] vector of lower integration bounds
+	 * @param xmax [xdim] vector of upper integration bounds
 	 * @param relTol relative tolerance on function values
 	 * @param absTol absolute tolerance on function values
 	 * @param norm Error norm for vector-valued integrands
 	 * @param maxEval absolute tolerance on function values
 	 * @param fdata any Object that shall be passed directly to the integrand; can be used to specify additional info/parameter/...
-	 * @return [0:val, 1:err][fdim]
+	 * @return [0:val, 1:err][fdim] value and error of integrals
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static double[][] integrate(Object o, String method, double[] xmin, double[] xmax, double relTol, double absTol, CubatureError norm, int maxEval, Object fdata) {
-		double[][] ret = null;
+	public static double[][] integrate(UnaryOperator<double[][]> integrand, double[] xmin, double[] xmax, double relTol, double absTol, CubatureError norm, int maxEval) {
 
 		// dimensionality of parameter space
 		final int dim;
@@ -122,60 +120,42 @@ public class Cubature {
 			throw new RuntimeException("xmin and xmax must have the same length but have "+xmin.length+" and "+xmax.length);
 		}
 
-		// dimensionality of the integrand
-		final int fdim;
-
 		// determine dimensionality of integrand by evaluating it once in the center of the given integration interval
 		double[][] _center = new double[dim][1];
 		for (int i=0; i<dim; ++i) {
 			_center[i][0] = (xmin[i]+xmax[i])/2.0;
 		}
-		try {
-			Method m = null;
-			if (o instanceof Class) {
-				//System.out.println("static member method");
-				m = ((Class)o).getDeclaredMethod(method, double[][].class, Object.class);
-			} else {
-				//System.out.println("method of object instance");
-				m = o.getClass().getDeclaredMethod(method, double[][].class, Object.class);
-			}
 
-			double[][] f = (double[][]) m.invoke(o, (Object)_center, fdata);
-			if (f == null || f.length==0 || f[0]==null || f[0].length==0) {
-				throw new RuntimeException("Evaluation of given method at interval center failed");
-			} else {
-				fdim=f.length;
-			}
+		double[][] f = integrand.apply(_center);
 
-			Rule r = null;
-			if (dim==1) {
-				r = new RuleGaussKronrod_1d(dim, fdim, 15);
-			} else {
-				// 5-7 Genz-Malik for dim>1
-				int numPoints = Rule75GenzMalik.num0_0(dim)
-						+   2 * Rule75GenzMalik.numR0_0fs(dim)
-						+       Rule75GenzMalik.numRR0_0fs(dim)
-						+       Rule75GenzMalik.numR_Rfs(dim);
-
-				//System.out.println("dim="+dim+" fdim="+fdim);
-
-				r = new Rule75GenzMalik(dim, fdim, numPoints);
-			}
-
-			double[] val = new double[fdim];
-			double[] err = new double[fdim];
-			Arrays.fill(err, Double.POSITIVE_INFINITY);
-
-			Hypercube h = new Hypercube().initFromRanges(xmin, xmax);
-
-			r.cubature(o, m, maxEval, relTol, absTol, val, err, h, norm, fdata);
-
-			ret = new double[][] { val, err };
-
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+		// dimensionality of the integrand
+		final int fdim;
+		if (f == null || f.length==0 || f[0]==null || f[0].length==0) {
+			throw new RuntimeException("Evaluation of given method at interval center failed");
+		} else {
+			fdim=f.length;
 		}
 
-		return ret;
+		double[] val = new double[fdim];
+		double[] err = new double[fdim];
+		Arrays.fill(err, Double.POSITIVE_INFINITY);
+
+		Hypercube h = new Hypercube().initFromRanges(xmin, xmax);
+
+		Rule r = null;
+		if (dim==1) {
+			r = new RuleGaussKronrod_1d(dim, fdim, 15);
+		} else {
+			// 5-7 Genz-Malik for dim>1
+			int numPoints = Rule75GenzMalik.num0_0(dim)
+					+   2 * Rule75GenzMalik.numR0_0fs(dim)
+					+       Rule75GenzMalik.numRR0_0fs(dim)
+					+       Rule75GenzMalik.numR_Rfs(dim);
+			r = new Rule75GenzMalik(dim, fdim, numPoints);
+		}
+
+		r.cubature(integrand, maxEval, relTol, absTol, val, err, h, norm);
+
+		return new double[][] { val, err };
 	}
 }

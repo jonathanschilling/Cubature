@@ -1,6 +1,6 @@
 package de.labathome;
 
-import java.lang.reflect.Method;
+import java.util.function.UnaryOperator;
 
 /**
  * Based on rule75genzmalik.cpp in HIntLib-0.0.10:
@@ -200,7 +200,7 @@ public class Rule75GenzMalik extends Rule {
 	}
 
 	@Override
-	public void evalError(Object o, Method m, Region[] R, int nR, Object fdata) {
+	public void evalError(UnaryOperator<double[][]> integrand, Region[] R, int nR) {
 
 		alloc_rule_pts(nR);
 
@@ -247,7 +247,7 @@ public class Rule75GenzMalik extends Rule {
 
 		try {
 			// evaluate function
-			vals = (double[][]) m.invoke(o, (Object)(pts), fdata); // [fdim][15]
+			vals = integrand.apply(pts); // [fdim][15]
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

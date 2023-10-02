@@ -1,6 +1,6 @@
 package de.labathome;
 
-import java.lang.reflect.Method;
+import java.util.function.UnaryOperator;
 
 /** adaptive integration, analogous to adaptintegrator.cpp in HIntLib */
 public abstract class Rule {
@@ -25,7 +25,7 @@ public abstract class Rule {
 		this.num_regions = 0;
 	}
 
-	public abstract void evalError(Object o, Method m, Region[] R, int nR, Object fdata);
+	public abstract void evalError(UnaryOperator<double[][]> integrand, Region[] R, int nR);
 
 	public void alloc_rule_pts(int _num_regions) {
 		if (_num_regions > num_regions) {
@@ -40,7 +40,7 @@ public abstract class Rule {
 		}
 	}
 
-	public void cubature(Object o, Method m, int maxEval, double relTol, double absTol, double[] val, double[] err, Hypercube h, CubatureError norm, Object fdata) {
+	public void cubature(UnaryOperator<double[][]> integrand, int maxEval, double relTol, double absTol, double[] val, double[] err, Hypercube h, CubatureError norm) {
 
 		int numEval = 0;
 		RegionHeap regions = new RegionHeap(fdim);
@@ -54,7 +54,7 @@ public abstract class Rule {
 
 		R[0] = new Region().init(h, fdim);
 
-		evalError(o, m, new Region[] { R[0] } , 1, fdata);
+		evalError(integrand, new Region[] { R[0] }, 1);
 		R[0].errmax = errMax(R[0].fdim, R[0].ee);
 
 		regions.add(R[0]);
@@ -126,7 +126,7 @@ public abstract class Rule {
 				}
 			} while (regions.size() > 0 && (numEval < maxEval || maxEval==0));
 
-			evalError(o, m, R, nR, fdata);
+			evalError(integrand, R, nR);
 
 			for (i=0; i<nR; ++i) {
 				R[i].errmax = errMax(R[i].fdim, R[i].ee);
