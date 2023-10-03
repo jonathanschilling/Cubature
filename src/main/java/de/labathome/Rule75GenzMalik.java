@@ -17,7 +17,7 @@ public class Rule75GenzMalik extends Rule {
 	public static int num0_0(    int dim) { return 1; }
 	public static int numR0_0fs( int dim) { return 2 * dim; }
 	public static int numRR0_0fs(int dim) { return 2 * dim * (dim-1); }
-	public static int numR_Rfs(  int dim) { return (1 << dim); }
+	public static int numR_Rfs(  int dim) { return (1 << dim); /* pow(2, dim) */ }
 
 	/* Based on orbitrule.cpp in HIntLib-0.0.10 */
 	/*
@@ -66,6 +66,10 @@ public class Rule75GenzMalik extends Rule {
 	 * @param r radius
 	 */
 	public void evalR_Rfs(int pts_offset, int dim, double[] p, final double[] c, final double[] r) {
+		
+		// all combinations of c +/- r in all dimensions
+		
+		
 		int i;
 
 		/** 0/1 bit = +/- for corresponding element of r[] */
