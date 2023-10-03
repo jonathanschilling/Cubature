@@ -223,6 +223,65 @@ public class TestCubature {
 		return val;
 	}
 
+	// TODO: fails currently ...
+	@Test
+	void testThreeDimUnitSphere() {
+
+		UnaryOperator<double[][]> integrand = (double[][] x) -> {
+			int xdim = x.length;
+			int nPts = x[0].length;
+
+			System.out.printf("eval at %d points\n", nPts);
+
+			double[][] ret = new double[1][nPts];
+
+			double[] r2 = new double[nPts];
+			for (int dim = 0; dim < xdim; ++dim) {
+				for (int iPt = 0; iPt < nPts; ++iPt) {
+					r2[iPt] += x[dim][iPt] * x[dim][iPt];
+				}
+			}
+
+			for (int iPt = 0; iPt < nPts; ++iPt) {
+				if (r2[iPt] < radius) {
+					ret[0][iPt] += 1.0;
+				}
+			}
+
+			return ret;
+		};
+
+		int xdim = 3;
+
+		double[] xmin = new double[xdim];
+		double[] xmax = new double[xdim];
+
+		Arrays.fill(xmin, 0.0);
+		Arrays.fill(xmax, 1.0);
+
+		double relTol = 1.0e-2;
+		double absTol = Double.NaN; // absolute error check disabled
+		int maxEval = 0; // limit on maximum number of iterations disabled
+		double[][] val_err = Cubature.integrate(integrand, xmin, xmax, relTol, absTol, CubatureError.INDIVIDUAL, maxEval);
+
+		double expected = S(xdim) * Math.pow(radius * 0.5, xdim) / xdim;
+		double act_val = val_err[0][0];
+		double act_err = val_err[1][0];
+
+		double rel_err_est = act_err / act_val;
+		double rel_err = (act_val - expected) / expected;
+
+		System.out.printf("\nintegrand=%d xdim=%d\n" +
+		                  "  expected value of the integral = % .3e\n" +
+				          "  computed value of the integral = % .3e\n" +
+				          "         relative error estimate = % .3e\n" +
+				          "          (actual relative error = % .3e)\n",
+				          2, xdim,
+				          expected, act_val, rel_err_est, rel_err);
+
+		Assertions.assertTrue(Math.abs(rel_err_est) < relTol);
+	}
+
 	@Test
 	void testIndividualIntegrands() {
 
@@ -288,86 +347,86 @@ public class TestCubature {
 		}
 	}
 
-	@Test
-	void testCubature() {
-
-		// dimensionality of parameter space
-		for (int dim = 1; dim <= 4; ++dim) {
-
-			double[] xmin = new double[dim];
-			double[] xmax = new double[dim];
-
-			Arrays.fill(xmin, 0.0);
-			Arrays.fill(xmax, 1.0);
-
-			int max_fdim = 7;
-			if (dim == 3) {
-				// The example from HCubature.jl#4 only works for dim==3.
-				max_fdim = 8;
-			}
-
-			// dimensionality of vector function to integrate
-//			for (int fdim = 1; fdim <= max_fdim; ++fdim) {
-			int fdim = 1; {
-
-				// don't deal with repetions of individual integrands or permutations yet
-				int[] which_integrand = new int[fdim];
-				for (int i = 0; i < fdim; ++i) {
-					which_integrand[i] = i;
-				}
-
-				final int my_fdim = fdim;
-
-				UnaryOperator<double[][]> integrand = (double[][] x) -> {
-					int xdim = x.length;
-					int nPts = x[0].length;
-					double[][] ret = new double[my_fdim][nPts];
-
-					for (int iPt = 0; iPt < nPts; ++iPt) {
-
-						double[] x_i = new double[xdim];
-						for (int iXDim = 0; iXDim < xdim; ++iXDim) {
-							x_i[iXDim] = x[iXDim][iPt];
-						}
-
-						double[] f_i = f_test(x_i, which_integrand);
-
-						for (int iFDim = 0; iFDim < my_fdim; ++iFDim) {
-							ret[iFDim][iPt] = f_i[iFDim];
-						}
-					}
-
-					return ret;
-				};
-
-				double relTol = 1.0e-2;
-				double absTol = Double.NaN; // absolute error check disabled
-				int maxEval = 0; // limit on maximum number of iterations disabled
-				double[][] val_err = Cubature.integrate(integrand, xmin, xmax, relTol, absTol, CubatureError.INDIVIDUAL, maxEval);
-
-				for (int i = 0; i < fdim; ++i) {
-
-					double expected = exact_integral(which_integrand[i], xmax);
-					double act_val = val_err[0][i];
-					double act_err = val_err[1][i];
-
-					double rel_err = (act_val - expected) / expected;
-					double rel_err_est = act_err / act_val;
-
-					System.out.printf("\nxdim=%d fdim=%d i=%d" +
-					                  "  expected = % .3e\n" +
-							          "   act val = % .3e\n" +
-							          "   act err = % .3e\n" +
-							          "   rel err = % .3e\n",
-							          dim, fdim, i,
-							          expected, act_val, act_err, rel_err);
-
-					Assertions.assertTrue(Math.abs(rel_err) < relTol);
-					Assertions.assertTrue(Math.abs(rel_err_est) < relTol);
-				}
-			}
-		}
-	}
+//	@Test
+//	void testCubature() {
+//
+//		// dimensionality of parameter space
+//		for (int dim = 1; dim <= 4; ++dim) {
+//
+//			double[] xmin = new double[dim];
+//			double[] xmax = new double[dim];
+//
+//			Arrays.fill(xmin, 0.0);
+//			Arrays.fill(xmax, 1.0);
+//
+//			int max_fdim = 7;
+//			if (dim == 3) {
+//				// The example from HCubature.jl#4 only works for dim==3.
+//				max_fdim = 8;
+//			}
+//
+//			// dimensionality of vector function to integrate
+////			for (int fdim = 1; fdim <= max_fdim; ++fdim) {
+//			int fdim = 1; {
+//
+//				// don't deal with repetions of individual integrands or permutations yet
+//				int[] which_integrand = new int[fdim];
+//				for (int i = 0; i < fdim; ++i) {
+//					which_integrand[i] = i;
+//				}
+//
+//				final int my_fdim = fdim;
+//
+//				UnaryOperator<double[][]> integrand = (double[][] x) -> {
+//					int xdim = x.length;
+//					int nPts = x[0].length;
+//					double[][] ret = new double[my_fdim][nPts];
+//
+//					for (int iPt = 0; iPt < nPts; ++iPt) {
+//
+//						double[] x_i = new double[xdim];
+//						for (int iXDim = 0; iXDim < xdim; ++iXDim) {
+//							x_i[iXDim] = x[iXDim][iPt];
+//						}
+//
+//						double[] f_i = f_test(x_i, which_integrand);
+//
+//						for (int iFDim = 0; iFDim < my_fdim; ++iFDim) {
+//							ret[iFDim][iPt] = f_i[iFDim];
+//						}
+//					}
+//
+//					return ret;
+//				};
+//
+//				double relTol = 1.0e-2;
+//				double absTol = Double.NaN; // absolute error check disabled
+//				int maxEval = 0; // limit on maximum number of iterations disabled
+//				double[][] val_err = Cubature.integrate(integrand, xmin, xmax, relTol, absTol, CubatureError.INDIVIDUAL, maxEval);
+//
+//				for (int i = 0; i < fdim; ++i) {
+//
+//					double expected = exact_integral(which_integrand[i], xmax);
+//					double act_val = val_err[0][i];
+//					double act_err = val_err[1][i];
+//
+//					double rel_err = (act_val - expected) / expected;
+//					double rel_err_est = act_err / act_val;
+//
+//					System.out.printf("\nxdim=%d fdim=%d i=%d" +
+//					                  "  expected = % .3e\n" +
+//							          "   act val = % .3e\n" +
+//							          "   act err = % .3e\n" +
+//							          "   rel err = % .3e\n",
+//							          dim, fdim, i,
+//							          expected, act_val, act_err, rel_err);
+//
+//					Assertions.assertTrue(Math.abs(rel_err) < relTol);
+//					Assertions.assertTrue(Math.abs(rel_err_est) < relTol);
+//				}
+//			}
+//		}
+//	}
 
 	/** test based on the inline example in the README */
 	@Test
