@@ -1,6 +1,6 @@
 package de.labathome;
 
-public class EstErr {
+public class ErrorEstimate {
 	double val;
 	double err;
 }
