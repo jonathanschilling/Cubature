@@ -1,6 +1,6 @@
-package de.labathome;
+package de.labathome.cubature;
 
-import java.lang.reflect.Method;
+import java.util.function.UnaryOperator;
 
 /** 1d 15-point Gaussian quadrature rule, based on qk15.c and qk.c in
 GNU GSL (which in turn is based on QUADPACK). */
@@ -53,7 +53,7 @@ public class RuleGaussKronrod_1d extends Rule {
 	}
 
 	@Override
-	public void evalError(Object o, Method m, Region[] R, int nR, Object fdata) {
+	public void evalError(UnaryOperator<double[][]> integrand, Region[] R, int nR) {
 
 		alloc_rule_pts(nR);
 
@@ -85,7 +85,7 @@ public class RuleGaussKronrod_1d extends Rule {
 
 		try {
 			// evaluate function
-			vals = (double[][]) m.invoke(o, (Object)(pts), fdata); // [fdim][nR*15]
+			vals = integrand.apply(pts); // [fdim][nR*15]
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
