@@ -261,6 +261,7 @@ public abstract class Rule {
             }
             err = Math.sqrt(err) * maxerr;
             val = Math.sqrt(val) * maxval;
+            System.out.printf("[val=% .3e err=% .3e]\n ", val, err);
             if (!Double.isNaN(absTol)) {
                 converged |= err < absTol;
             }
