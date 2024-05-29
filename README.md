@@ -61,7 +61,7 @@ and the latest "official" version is available in Maven Central:
 <dependency>
 	<groupId>de.labathome</groupId>
 	<artifactId>Cubature</artifactId>
-	<version>1.1.0</version>
+	<version>1.2.0</version>
 </dependency>
 ```
 
