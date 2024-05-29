@@ -61,7 +61,7 @@ and the latest "official" version is available in Maven Central:
 <dependency>
 	<groupId>de.labathome</groupId>
 	<artifactId>Cubature</artifactId>
-	<version>1.0.5</version>
+	<version>1.1.0</version>
 </dependency>
 ```
 
@@ -73,11 +73,11 @@ Usage
 The central subroutine you will be calling for h-adaptive cubature is:
 
 ```java
-public static double[][] integrate(Object o, String method,
+public static double[][] integrate(
+	UnaryOperator<double[][]> integrand,
 	double[] xmin, double[] xmax,
 	double relTol, double absTol, Error norm,
-	int maxEval,
-	Object fdata);
+	int maxEval);
 ```
 
 This integrates a function F(x), returning a vector of `fdim` integrands,
@@ -126,31 +126,15 @@ in which the integral value and the associated error estimates are stored.
 The estimated errors are based on an embedded cubature rule of lower order;
 for smooth functions, this estimate is usually conservative.
 
-The integrand function `F` should be a function of the form:
+The integrand function `F` should have the following signature (or be a `UnaryOperator<double[][]>`):
 
 ```java
-public double[][] eval(final double[][] x, Object fdata)
-```
-
-or alternatively, the Object `o` handed to `integrate` should implement the `Integrand` interface:
-
-```java
-public static interface Integrand {
-	public abstract double[][] eval(final double[][] x, Object fdata);
-}
+double[][] eval(final double[][] x)
 ```
 
 Here, the input is a matrix `x` of dimensions `[dim][nPoints]` (the points to be
 evaluated), the output is an array `fval` of dimensions `[fdim][nPoints]` (the vectors
 of function values at the point `x`).
-
-The `fdata` argument of `F` is equal to the `fdata` argument passed to
-`integrate` - this can be used by the caller to pass any additional
-information through to `F` as needed.
-If the Object `o` given to integrate is an instance of a class, member variables
-can be used for the same purpose. If `F` does not need any
-additional data, you can just pass `null` for `fdata` and ignore the
-`fdata` argument in `F`.
 
 ### “Vectorized” interface
 
@@ -188,52 +172,54 @@ using a static member function as shown in
 
 ```java
 import java.util.Locale;
+import java.util.function.UnaryOperator;
 
-public class ThreeDimGaussianStaticExample {
+import de.labathome.cubature.Cubature;
+import de.labathome.cubature.CubatureError;
 
-	public static double[][] gaussianNd(double[][] x, Object fdata) {
-		int dim = x.length;
-		int nPoints = x[0].length;
-		double[][] fval = new double[1][nPoints];
-		double sigma = (double) fdata;
-		for (int i = 0; i < nPoints; ++i) {
-			double sum = 0.0;
-			for (int d = 0; d < dim; ++d) {
-				sum += x[d][i] * x[d][i];
-			}
-			fval[0][i] = Math.exp(-sigma * sum);
-		}
-		return fval;
-	}
+public class ThreeDimGaussianExample {
 
-	public static void ex_ThreeDimGaussian() {
-		double[] xmin = { -2.0, -2.0, -2.0 };
-		double[] xmax = { 2.0, 2.0, 2.0 };
-		double sigma = 0.5;
-		double[][] val_err = Cubature.integrate(ThreeDimGaussianStaticExample.class, "gaussianNd",
-				xmin, xmax,
-				1.0e-4, 0.0, Cubature.Error.INDIVIDUAL,
-				0,
-				sigma);
-		
-		System.out.println(String.format(Locale.ENGLISH,
-				"Computed integral = %.8f +/- %g", val_err[0][0], val_err[1][0]));
-	}
+    public static void ex_ThreeDimGaussian() {
 
-	public static void main(String[] args) {
-		ex_ThreeDimGaussian();
-	}
+        double[] xmin = { -2.0, -2.0, -2.0 };
+        double[] xmax = { 2.0, 2.0, 2.0 };
+
+        double sigma = 0.5;
+
+        UnaryOperator<double[][]> gaussianNd = (double[][] x) -> {
+            int dim = x.length;
+            int nPoints = x[0].length;
+            double[][] fval = new double[1][nPoints];
+            for (int i = 0; i < nPoints; ++i) {
+                double sum = 0.0;
+                for (int d = 0; d < dim; ++d) {
+                    sum += x[d][i] * x[d][i];
+                }
+                fval[0][i] = Math.exp(-sigma * sum);
+            }
+            return fval;
+        };
+
+        double[][] val_err = Cubature.integrate(gaussianNd,
+                xmin, xmax,
+                1.0e-4, 0.0, CubatureError.INDIVIDUAL,
+                0);
+
+        System.out.println(String.format(Locale.ENGLISH,
+                "Computed integral = %.8f +/- %g", val_err[0][0], val_err[1][0]));
+    }
+
+    public static void main(String[] args) {
+        ex_ThreeDimGaussian();
+    }
 }
 ```
 
 or using an object's member function as shown in
-[ThreeDimGaussianMemberExample.java](https://github.com/jonathanschilling/Cubature/blob/master/src/main/java/de/labathome/ThreeDimGaussianMemberExample.java):
+[ThreeDimGaussianMemberExample.java](https://github.com/jonathanschilling/Cubature/blob/master/src/main/java/de/labathome/cubature/examples/ThreeDimGaussianMemberExample.java):
 
 Here, we have specified a relative error tolerance of $10^{-4}$ (and no
 absolute error tolerance or maximum number of function evaluations).
-Note also that, to demonstrate the `fdata` parameter, we have used it to
-pass the σ value through to our function (rather than "hard-coding" the
-value of σ in `f` or using a member variable).
 
 The output should be:
 
