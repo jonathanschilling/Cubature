@@ -1,10 +1,10 @@
-package examples;
+package de.labathome.cubature.examples;
 
 import java.util.Locale;
 import java.util.function.UnaryOperator;
 
-import de.labathome.Cubature;
-import de.labathome.CubatureError;
+import de.labathome.cubature.Cubature;
+import de.labathome.cubature.CubatureError;
 
 public class ThreeDimGaussianExample {
 

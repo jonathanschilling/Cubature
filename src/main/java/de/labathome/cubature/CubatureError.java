@@ -1,4 +1,4 @@
-package de.labathome;
+package de.labathome.cubature;
 
 /**
  * Different ways of measuring the absolute and relative error when we have

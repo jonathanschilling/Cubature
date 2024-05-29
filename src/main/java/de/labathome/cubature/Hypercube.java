@@ -1,4 +1,4 @@
-package de.labathome;
+package de.labathome.cubature;
 
 public class Hypercube {
 

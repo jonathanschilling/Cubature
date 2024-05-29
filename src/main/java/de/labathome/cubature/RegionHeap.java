@@ -1,4 +1,4 @@
-package de.labathome;
+package de.labathome.cubature;
 
 import java.util.PriorityQueue;
 

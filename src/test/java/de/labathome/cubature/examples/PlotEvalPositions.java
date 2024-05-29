@@ -1,14 +1,16 @@
-package examples;
+package de.labathome.cubature.examples;
 
 import java.util.function.UnaryOperator;
 
 import aliceinnets.python.jyplot.JyPlot;
-import de.labathome.Cubature;
-import de.labathome.CubatureError;
+import de.labathome.cubature.Cubature;
+import de.labathome.cubature.CubatureError;
 
 public class PlotEvalPositions {
 
-
+	public static void main(String[] args) {
+		plotEvalPositions();
+	}
 
 	public static void plotEvalPositions() {
 
@@ -46,7 +48,6 @@ public class PlotEvalPositions {
 				if (radius < 1.0) {
 					fval[0][i] += 1.0;
 				}
-
 			}
 
 			return fval;
@@ -65,9 +66,4 @@ public class PlotEvalPositions {
 		plt.show();
 		plt.exec();
 	}
-
-	public static void main(String[] args) {
-		plotEvalPositions();
-	}
-
 }

@@ -1,13 +1,10 @@
-package tests;
+package de.labathome.cubature;
 
 import java.util.Arrays;
 import java.util.function.UnaryOperator;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import de.labathome.Cubature;
-import de.labathome.CubatureError;
 
 /**
  * Test program for hcubature/pcubature.
